@@ -6,27 +6,21 @@ import json
 peers = []
 
 manifest = {
-        'p1' : {
-            'v1' : {
-                'chunks' : [1, 2, 3, 4, 5]
-            },
-            'v2' : {
-                'chunks' : [1, 2, 4, 5]
-            }
-        },
-        'p2' : {
-            'v2' : {
-                'chunks' : [1, 2, 3, 4, 5]
-            },
-            'v3' : {
-                'chunks' : [1, 2, 4, 5]
-            }
-        }
+    'v1': {
+        'p1': [1, 2, 3, 4, 5]
+    },
+    'v2': {
+        'p1': [1, 2, 4, 5],
+        'p2': [1, 2, 3, 4, 5]
+    },
+    'v3': {
+        'p2': [1, 2, 4, 5]
+    }
 }
 
 def get_peers_info():
     return peers
-    
+
 
 def get_chunk_info(conn, address, chunk_request):
 
@@ -39,23 +33,23 @@ def get_chunk_info(conn, address, chunk_request):
     # }
 
     vid = chunk_request_dict['video']
-    chunk_range_strt = chunk_request_dict['chunk_range_start']
-    chunk_range_ed = chunk_request_dict['chunk_range_end']
+    chunk_range_start = chunk_request_dict['chunk_range_start']
+    chunk_range_end = chunk_request_dict['chunk_range_end']
 
     peers_having_chunk = []
 
-    for peer in manifest:
-        if vid in manifest[peer]:
-            chunks = manifest[peer][vid]['chunks']
+    for vid in manifest:
+        for peer in vid:
+            chunks = manifest[vid][peer]['chunks']
             chunk_peer_has = []
 
             for chunk in chunks:
-                if chunk_range_strt <= chunk <= chunk_range_ed:
+                if chunk_range_start <= chunk <= chunk_range_end:
                     chunk_peer_has.append(chunk)
-            
+
             if len(chunk_peer_has) > 0:
                 peers_having_chunk.append((peer, chunk_peer_has))
-    
+
     return peers_having_chunk
 
 
@@ -82,38 +76,38 @@ def update_manifest(uploader_info, vid_name):
         for chunk in uploader_info_dict[peer]['chunks']:
             if chunk not in manifest[peer][vid_name]['chunks']:
                 manifest[peer][vid_name]['chunks'].append(chunk)
-    
+
 
 def register_new_peer(client, address):
     peers.append((client, address))
 
 def handle_peer(conn, address):
-    while True : 
-        action = conn.recv(1024).decode("utf-8") 
+    while True :
+        action = conn.recv(1024).decode("utf-8")
         if not action:
             break
 
         if action == "chunk request" :
-            chunk_request = conn.recv(1024).decode("utf-8") 
+            chunk_request = conn.recv(1024).decode("utf-8")
             response = get_chunk_info(conn, address, chunk_request)
             response = json.dumps(response)
             conn.send(f"peers {response}".encode("utf-8"))
 
         elif action == "upload" :
-            vid_name = conn.recv(1024).decode("utf-8") 
+            vid_name = conn.recv(1024).decode("utf-8")
             response = get_peers_info()
             response = json.dumps(response)
             conn.send(response.encode("utf-8"))
-            uploader_info = conn.recv(1024).decode("utf-8") 
+            uploader_info = conn.recv(1024).decode("utf-8")
             update_manifest(uploader_info, vid_name)
 
         # elif action == "share chunk" :
-        #     share_chunk_info = conn.recv(1024).decode("utf-8") 
+        #     share_chunk_info = conn.recv(1024).decode("utf-8")
         #     share_chunk(conn, address, share_chunk_info)
 
         elif action == "exit" :
             break
-    
+
     return
 
 def start_tracker():
