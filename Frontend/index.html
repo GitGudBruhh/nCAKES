@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chunk Player</title>
+    <link href="https://vjs.zencdn.net/8.3.0/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/8.3.0/video.min.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .video-container {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chunk-Based Video Player</h1>
+    <div class="video-container">
+        <video id="videoPlayer" class="video-js vjs-default-skin" controls width="800" height="450">
+            <source src="video_0.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <script>
+        let chunkIndex = 0;
+        const player = videojs('videoPlayer');
+        player.ready(function() {
+            player.play();
+        });
+
+        function loadChunk(index) {
+            fetch(`/video_chunk?index=${index}`)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    player.src({ type: "video/mp4", src: url });
+                    player.play();
+                })
+                .catch(error => console.error("Error loading chunk:", error));
+        }
+
+        // Load the first chunk initially
+        loadChunk(chunkIndex);
+    </script>
+</body>
+</html>
