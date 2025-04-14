@@ -92,6 +92,14 @@ class Tracker:
     def register_new_peer(self, client, address):
         self.peers.append((client, address))
 
+        response = {
+            "message_comment": "Registration Successful",
+            "message_type": 621
+        }
+
+        response = json.dumps(response)
+        client.send(response.encode("utf-8"))
+
     def handle_peer(self, conn, address):
         while True:
             try:
