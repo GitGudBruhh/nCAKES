@@ -10,6 +10,8 @@ class Peer:
         self.server_ip = "127.0.0.1"
         self.server_port = 8080
         self.server_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_conn.connect((self.server_ip, self.server_port))
+
 
         self.avail_chunks = {}
 
@@ -50,12 +52,13 @@ class Peer:
 
         msg = json.dumps(message)
 
-        self.server_conn.send(msg.encode("utf-8"))
+        with self.server_conn_lock:
+            self.server_conn.send(msg.encode("utf-8"))
 
-        #TODO Receive entire message
-        response = self.server_conn.recv(1024)
+            #TODO Receive entire message
+            response = self.server_conn.recv(1024)
+
         data = json.loads(response)
-
         print(data)
 
         if data["message_type"] == 631:
@@ -69,7 +72,7 @@ class Peer:
             "message_code" : 410,
             "message_comment" : "Update Chunks",
             "vid_name" : vid_name,
-            "uploader_info" : self.avail_chunks
+            "uploader_info" : self.avail_chunks[vid_name]
         }
 
         msg = json.dumps(message)
@@ -97,22 +100,45 @@ class Peer:
 
         self.server_conn.send(msg.encode("utf-8"))
 
+        response = self.server_conn.recv(1024)
+        data = json.loads(response)
+
+        print(data)
+
+        if data["message_type"] == 611:
+            return None
+
+
     def handle_server(self):
-
-        self.server_conn.connect((self.server_ip, self.server_port))
         
-        self.register_with_server()
+        with self.server_conn_lock:
+            self.register_with_server()
 
-        #TODO Send Alive pings once in a while
+        while True:
+            # Get lock corresponding to socket connecting to the server
+            with self.server_conn_lock:
+                #TODO Update this clients available chunks to the server periodically
+                for video in self.avail_chunks.keys():
+                    # self.update_chunks(video)
+                    pass
 
-        #TODO Update this clients available chunks to the server periodically
+
+                #TODO Send Alive pings once in a while
+                # self.send_alive_to_server()
+
+                self.register_with_server()
+
+            time.sleep(5)
+
 
 
 
 if __name__ == "__main__":
+
     peer = Peer()
 
-    peer.handle_server()
+    server_side = threading.Thread(target=peer.handle_server, daemon=True)
+    server_side.start()
 
     request = {
         "video" : "v2",
