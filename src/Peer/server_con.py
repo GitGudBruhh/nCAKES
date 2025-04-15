@@ -3,16 +3,18 @@ import json
 import time
 import threading
 
-class Peer:
+class ServerConnection:
 
-    def __init__(self):
+    def __init__(self, server_ip, server_port, handle_interval):
 
-        self.server_ip = "127.0.0.1"
-        self.server_port = 8080
-        self.server_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_conn.connect((self.server_ip, self.server_port))
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conn.connect((self.server_ip, self.server_port))
 
+        self.handle_interval = handle_interval
 
+        #TODO Move this to Peer instead of ServerConnection
         self.avail_chunks = {}
 
         # Threading stuff
@@ -28,9 +30,9 @@ class Peer:
 
         msg = json.dumps(message)
 
-        self.server_conn.send(msg.encode("utf-8"))
+        self.conn.send(msg.encode("utf-8"))
 
-        response = self.server_conn.recv(1024)
+        response = self.conn.recv(1024)
         data = json.loads(response)
 
         print(data)
@@ -53,10 +55,10 @@ class Peer:
         msg = json.dumps(message)
 
         with self.server_conn_lock:
-            self.server_conn.send(msg.encode("utf-8"))
+            self.conn.send(msg.encode("utf-8"))
 
             #TODO Receive entire message
-            response = self.server_conn.recv(1024)
+            response = self.conn.recv(1024)
 
         data = json.loads(response)
         print(data)
@@ -77,9 +79,9 @@ class Peer:
 
         msg = json.dumps(message)
 
-        self.server_conn.send(msg.encode("utf-8"))
+        self.conn.send(msg.encode("utf-8"))
 
-        response = self.server_conn.recv(1024)
+        response = self.conn.recv(1024)
         data = json.loads(response)
 
         print(data)
@@ -98,9 +100,9 @@ class Peer:
 
         msg = json.dumps(message)
 
-        self.server_conn.send(msg.encode("utf-8"))
+        self.conn.send(msg.encode("utf-8"))
 
-        response = self.server_conn.recv(1024)
+        response = self.conn.recv(1024)
         data = json.loads(response)
 
         print(data)
@@ -128,26 +130,4 @@ class Peer:
 
                 self.register_with_server()
 
-            time.sleep(5)
-
-
-
-
-if __name__ == "__main__":
-
-    peer = Peer()
-
-    server_side = threading.Thread(target=peer.handle_server, daemon=True)
-    server_side.start()
-
-    request = {
-        "video" : "v2",
-        "chunk_range_start" : 2,
-        "chunk_range_end" : 4
-    }
-
-    print(peer.request_chunks(request))
-
-    peer.avail_chunks["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
-
-    peer.server_conn.close()
+            time.sleep(self.handle_interval)
