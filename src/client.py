@@ -1,16 +1,20 @@
 import socket
 import json
 import time
+import threading
 
-class Client:
+class Peer:
 
     def __init__(self):
+
         self.server_ip = "127.0.0.1"
         self.server_port = 8080
         self.server_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_conn.connect((self.server_ip, self.server_port))
 
         self.avail_chunks = {}
+
+        # Threading stuff
+        self.server_conn_lock = threading.Lock()
         
 
     def register_with_server(self):
@@ -65,14 +69,13 @@ class Client:
             "message_code" : 410,
             "message_comment" : "Update Chunks",
             "vid_name" : vid_name,
-            "uploader_info" : None
+            "uploader_info" : self.avail_chunks
         }
 
         msg = json.dumps(message)
 
         self.server_conn.send(msg.encode("utf-8"))
 
-        #TODO Receive entire message
         response = self.server_conn.recv(1024)
         data = json.loads(response)
 
@@ -83,7 +86,7 @@ class Client:
         elif data["message_type"] == 741:
             pass
     
-    def respond_to_heartbeat(self):
+    def send_alive_to_server(self):
 
         message = {
             "message_code" : 101,
@@ -94,9 +97,22 @@ class Client:
 
         self.server_conn.send(msg.encode("utf-8"))
 
+    def handle_server(self):
+
+        self.server_conn.connect((self.server_ip, self.server_port))
+        
+        self.register_with_server()
+
+        #TODO Send Alive pings once in a while
+
+        #TODO Update this clients available chunks to the server periodically
+
+
+
 if __name__ == "__main__":
-    client = Client()
-    client.register_with_server()
+    peer = Peer()
+
+    peer.handle_server()
 
     request = {
         "video" : "v2",
@@ -104,10 +120,8 @@ if __name__ == "__main__":
         "chunk_range_end" : 4
     }
 
-    print(client.request_chunks(request))
+    print(peer.request_chunks(request))
 
-    client.avail_chunks["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
+    peer.avail_chunks["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
 
-
-    
-    client.server_conn.close()
+    peer.server_conn.close()
