@@ -74,20 +74,29 @@ class Tracker:
 
         return (peers_containing_range, is_all_available)
 
-    def update_manifest(self, uploader_info, vid_name):
-        # TODO: Change this function
-        uploader_info_dict = json.loads(uploader_info)
+    def update_manifest(self, uploader_info, vid_name, conn, address):
 
-        for peer in uploader_info_dict:
-            if peer not in self.manifest:
-                self.manifest[peer] = {}
+        chunks = json.loads(uploader_info)
+        ip_client = address[0]
 
-            if vid_name not in self.manifest[peer]:
-                self.manifest[peer][vid_name] = {'chunks': []}
+        for peer_id, info in self.peer_info.items():
+            if(info["ip_addr"] == ip_client):
+                peer_identifier = peer_id
+                break
 
-            for chunk in uploader_info_dict[peer]['chunks']:
-                if chunk not in self.manifest[peer][vid_name]['chunks']:
-                    self.manifest[peer][vid_name]['chunks'].append(chunk)
+        if peer_identifier is None:
+            print("Unknown peer IP:", ip_client)
+            return 
+
+        if vid_name not in self.manifest:
+            self.manifest[vid_name] = {}
+        
+        if peer_identifier not in self.manifest[vid_name]:
+            self.manifest[vid_name][peer_identifier] = {'chunks' : set()}
+
+        for chunk in chunks:
+            self.manifest[vid_name][peer_identifier]['chunks'].add(chunk)
+
 
     def register_new_peer(self, client, address):
         self.peers.append((client, address))
@@ -147,7 +156,7 @@ class Tracker:
                     vid_name = data.get("vid_name")
                     uploader_info = data.get("uploader_info")
 
-                    self.update_manifest(uploader_info, vid_name)
+                    self.update_manifest(uploader_info, vid_name, conn, address)
 
                     # TODO: response = ?
                     conn.send(response.encode("utf-8"))
