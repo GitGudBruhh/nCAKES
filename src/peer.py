@@ -67,6 +67,8 @@ class Peer:
                     with open(f"{video_dir}video_{video_name}_{chunk_number}.mp4", "wb") as f:
                         f.write(video)
                     # TODO:report updated chunk collection to tracker
+                else:
+                    print(message)
             except json.JSONDecodeError:
                 response = json.dumps({"message_comment": "Invalid JSON",
                                         "message_type": 799})
