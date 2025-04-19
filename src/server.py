@@ -121,7 +121,7 @@ class Tracker:
             message_comment = "Registration Successfull!"
         else: 
             message_comment = "The peer has already registered!"
-            
+
         response = {
             "message_comment": message_comment,
             "message_type": 621
@@ -129,6 +129,26 @@ class Tracker:
 
         response = json.dumps(response)
         client.send(response.encode("utf-8"))
+
+    def deregister_peer(self, client, address):
+        peer = (client, address)
+
+        if peer in self.peers:
+            self.peers.remove(peer)
+            meessage_type = 651
+            message_comment = "Successfully Deregistered!"
+        else:
+            meessage_type = 751
+            message_comment = "Peer not found in the register!"
+
+        response = {
+            "message_comment": message_comment,
+            "message_type": meessage_type
+        }
+
+        response = json.dumps(response)
+        client.send(response.encode("utf-8"))
+        
 
     def handle_peer(self, conn, address):
         while True:
@@ -148,9 +168,8 @@ class Tracker:
                 if message_code == 210:  # 210 Register
                     self.register_new_peer(conn, address)
 
-                # TODO: Implement deregister
-                # elif message_code == 220:  # 220 Deregister
-                #     self.deregister_peer(conn, address)
+                elif message_code == 220:  # 220 Deregister
+                    self.deregister_peer(conn, address)
 
                 elif message_code == 310:  # 310 Request Chunk
                     chunk_request = data.get("chunk_request")
@@ -178,9 +197,6 @@ class Tracker:
                     uploader_info = data.get("uploader_info")
 
                     self.update_manifest(uploader_info, vid_name, conn, address)
-
-                    # TODO: response = ?
-                    conn.send(response.encode("utf-8"))
 
                 else:  # 799 Invalid message code/Structure
                     response = json.dumps({"message_comment": "Invalid message code",
