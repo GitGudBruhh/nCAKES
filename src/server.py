@@ -78,6 +78,9 @@ class Tracker:
 
         chunks = json.loads(uploader_info)
         ip_client = address[0]
+        message_type = 641
+        message_comment = "Updated Chunks Successfully!"
+        peer_identifier = None
 
         for peer_id, info in self.peer_info.items():
             if(info["ip_addr"] == ip_client):
@@ -86,7 +89,18 @@ class Tracker:
 
         if peer_identifier is None:
             print("Unknown peer IP:", ip_client)
-            return 
+            message_comment = "Failed to update chunks!"
+            message_type = 741
+
+        response = {
+                "message_comment": message_comment,
+                "message_type": message_type,
+        }
+
+        if(message_type == 741):
+            response = json.dumps(response)
+            conn.send(response.encode("utf-8"))
+            return
 
         if vid_name not in self.manifest:
             self.manifest[vid_name] = {}
@@ -96,13 +110,20 @@ class Tracker:
 
         for chunk in chunks:
             self.manifest[vid_name][peer_identifier]['chunks'].add(chunk)
+        
+        response = json.dumps(response)
+        conn.send(response.encode("utf-8"))
 
 
     def register_new_peer(self, client, address):
-        self.peers.append((client, address))
-
+        if (client, address) not in self.peers:
+            self.peers.append((client, address))
+            message_comment = "Registration Successfull!"
+        else: 
+            message_comment = "The peer has already registered!"
+            
         response = {
-            "message_comment": "Registration Successful",
+            "message_comment": message_comment,
             "message_type": 621
         }
 
