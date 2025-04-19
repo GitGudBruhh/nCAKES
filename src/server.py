@@ -246,7 +246,7 @@ class Tracker:
 
                 elif message_code == 410:  # 410 Update chunks
                     vid_name = data.get("vid_name")
-                    uploader_info = data.get("uploader_info")
+                    uploader_info = data.get("avail_chunks")
                     self.update_manifest(uploader_info, vid_name, conn, address)
 
                 else:  # 799 Invalid message code/Structure

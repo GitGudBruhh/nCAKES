@@ -21,6 +21,11 @@ class ServerConnection:
         self.server_conn_lock = threading.Lock()
         
 
+    def send_msg_len(self, msg):
+        msg_len = len(msg)
+        length = msg_len.to_bytes(4, byteorder='big')
+        self.conn.send(length)
+
     def register_with_server(self):
 
         message = {
@@ -28,8 +33,10 @@ class ServerConnection:
             "message_comment" : "Register"
         }
 
-        msg = json.dumps(message)
 
+        msg = json.dumps(message)
+        
+        self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
         response = self.conn.recv(1024)
@@ -55,6 +62,7 @@ class ServerConnection:
         msg = json.dumps(message)
 
         with self.server_conn_lock:
+            self.send_msg_len(msg)
             self.conn.send(msg.encode("utf-8"))
 
             #TODO Receive entire message
@@ -79,6 +87,9 @@ class ServerConnection:
 
         msg = json.dumps(message)
 
+        self.send_msg_len(msg)
+        print(len(msg))
+        print(msg)
         self.conn.send(msg.encode("utf-8"))
 
         response = self.conn.recv(1024)
@@ -100,6 +111,7 @@ class ServerConnection:
 
         msg = json.dumps(message)
 
+        self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
         response = self.conn.recv(1024)
