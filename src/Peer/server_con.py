@@ -74,7 +74,7 @@ class ServerConnection:
             "message_code" : 410,
             "message_comment" : "Update Chunks",
             "vid_name" : vid_name,
-            "uploader_info" : self.avail_chunks[vid_name]
+            "avail_chunks" : self.avail_chunks[vid_name]
         }
 
         msg = json.dumps(message)
@@ -119,15 +119,13 @@ class ServerConnection:
         while True:
             # Get lock corresponding to socket connecting to the server
             with self.server_conn_lock:
-                #TODO Update this clients available chunks to the server periodically
+                
+                # Update this clients available chunks to the server periodically
                 for video in self.avail_chunks.keys():
-                    # self.update_chunks(video)
-                    pass
+                    self.update_chunks(video)
 
 
-                #TODO Send Alive pings once in a while
-                # self.send_alive_to_server()
-
-                self.register_with_server()
+                # Send Alive pings once in a while
+                self.send_alive_to_server()
 
             time.sleep(self.handle_interval)

@@ -74,9 +74,9 @@ class Tracker:
 
         return (peers_containing_range, is_all_available)
 
-    def update_manifest(self, uploader_info, vid_name, conn, address):
+    def update_manifest(self, avail_chunks, vid_name, conn, address):
 
-        chunks = json.loads(uploader_info)
+        chunks = avail_chunks
         ip_client = address[0]
         message_type = 641
         message_comment = "Updated Chunks Successfully!"
@@ -113,6 +113,8 @@ class Tracker:
         
         response = json.dumps(response)
         conn.send(response.encode("utf-8"))
+
+        print("New Manifest:\n", self.manifest)
 
 
     def register_new_peer(self, client, address):
@@ -194,9 +196,9 @@ class Tracker:
 
                 elif message_code == 410:  # 410 Update chunks
                     vid_name = data.get("vid_name")
-                    uploader_info = data.get("uploader_info")
+                    avail_chunks = data.get("avail_chunks")
 
-                    self.update_manifest(uploader_info, vid_name, conn, address)
+                    self.update_manifest(avail_chunks, vid_name, conn, address)
 
                 else:  # 799 Invalid message code/Structure
                     response = json.dumps({"message_comment": "Invalid message code",

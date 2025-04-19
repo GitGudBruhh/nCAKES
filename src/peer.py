@@ -9,7 +9,7 @@ class Peer:
 
     def __init__(self):
 
-        self.server_conn = ServerConnection("127.0.0.1", 8080, 10)
+        self.server_conn = ServerConnection("127.0.0.1", 8080, 5)
 
 
 if __name__ == "__main__":
@@ -27,6 +27,7 @@ if __name__ == "__main__":
 
     print(peer.server_conn.request_chunks(request))
 
-    # peer.avail_chunks["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
+    peer.server_conn.avail_chunks["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
 
+    time.sleep(20)
     peer.server_conn.conn.close()
