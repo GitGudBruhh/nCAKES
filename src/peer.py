@@ -11,7 +11,6 @@ class Peer:
         self.ip_address = '10.200.244.162'
 
     def handle_peer(self, conn):
-        i = 0
         global json_size
         global bytes_received
         global json_message
@@ -22,11 +21,10 @@ class Peer:
             try:
                 # Receive the JSON message
                 message_bytes = conn.recv(4)
-                message_bytes = int.from_bytes(message_bytes, byteorder='big')
-                if not message:
+                if not message_bytes:
                     break
-                print(i , message)
-                i+=1
+                message_bytes = int.from_bytes(message_bytes, byteorder='big')
+
                 while message_bytes > 0:
                         message = conn.recv(message_bytes).decode("utf-8")
                         json_message += message
@@ -47,25 +45,27 @@ class Peer:
                     response = {
                             "message_comment": "Request action fulfilled",
                             "message_type": 631,
-                            "video": binary_chunk,
+                            "video_len": len(binary_chunk),
                             "video_name": video_name,
                             "chunk_number": chunk_number
                         }
-                    response_size = {
-                                "message_size":len((str)(response)),
-                                "message_type": 139
-                                    }
-                    response_size = json.dumps(response_size)
-                    conn.send(response_size.encode("utf-8"))
                     response = json.dumps(response)
+                    response_size = len(response)
+                    conn.send(response_size.to_bytes(4, "big"))
                     conn.send(response.encode("utf-8"))
+                    conn.send(binary_chunk)
                 
                 elif message_code == 631: #receiving chunk
+                    video_len = data.get("video_len")
+                    video_chunk = b''
+                    while video_len > 0:
+                        video_sub_chunk = conn.recv(video_len).decode("utf-8")
+                        video_chunk += video_sub_chunk
+                        video_len -= len(video_sub_chunk)
                     video_name = data.get("video_name")
                     chunk_number = data.get("chunk_number")
-                    video = data.get("video").decode("utf-8")
                     with open(f"{video_dir}video_{video_name}_{chunk_number}.mp4", "wb") as f:
-                        f.write(video)
+                        f.write(video_chunk)
                     # TODO:report updated chunk collection to tracker
                 else:
                     print(message)
@@ -81,46 +81,46 @@ class Peer:
                 conn.send(response_len)
                 conn.send(response.encode("utf-8"))
 
-    def start_serverSide(self):
-        print("Starting server-side of this peer...")
-        server = socket(AF_INET, SOCK_STREAM)
-        server.bind((self.ip_address, 8080))
-        server.listen(10)
-        print("Server-side started...")
+    def start_sender_side(self):
+        print("Starting sender-side of this peer...")
+        sender = socket(AF_INET, SOCK_STREAM)
+        sender.bind((self.ip_address, 8080))
+        sender.listen(10)
+        print("Sender-side started...")
 
         try:
             while True:
-                conn, address = server.accept()
+                conn, address = sender.accept()
                 print(f"Connection from {address} has been established.")
                 client_handler = threading.Thread(target=self.handle_peer, args=(conn,)) #args should be a tuple
                 client_handler.start()
         except KeyboardInterrupt:
             print("Shutting down server-side of this peer...")
         finally:
-            server.close()
+            sender.close()
             print("Tracker closed.")
 
-    def start_clientSide():
+    def start_receiver_side():
         # connect to tracker
         tracker_ip = '127.0.0.1'
         tracker_port = 8080
-        client = socket(AF_INET, SOCK_STREAM)
-        client.connect((tracker_ip, tracker_port))
+        receiver = socket(AF_INET, SOCK_STREAM)
+        receiver.connect((tracker_ip, tracker_port))
         # request video chunk info
         request = {
             "message_type" : 000,
             "video_name" : "v1",
-            "chunk_range" : "0",
+            "chunk_range_start" : "0",
             "chunk_range_end" : "0"
         }
         
         # response_size = json.dumps(response_size)
         # client.send(response_size.encode("utf-8"))
         request = json.dumps(request)
-        client.send(request.encode("utf-8"))
+        receiver.send(request.encode("utf-8"))
         
         # receive chunk info
-        chunk_info = client.recv(1024)
+        chunk_info = receiver.recv(1024)
         # connect to peers -> handle_peer() call only if not in self.receivers
         
         pass
