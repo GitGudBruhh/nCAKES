@@ -7,7 +7,7 @@ from Peer.server_con import ServerConnection
 
 class Peer:
 
-    def __init__(self):
+    def __init__(self, sender_side):
         self.ip_address = '10.200.244.162'
         
         # Peer to Server Connection
@@ -15,7 +15,7 @@ class Peer:
         self.server_handle_interval = 5
 
         # Peer to Peer Server (For sending data)
-        self.server = None
+        self.server = sender_side
 
         # Peer to Peer client (For requesting and receiving data)
         self.client = None
@@ -40,10 +40,40 @@ class Peer:
 
             time.sleep(self.server_handle_interval)
 
-class Peer_sender_side:
+class PeerSenderSide:
     def __init__(self):
         self.video_dir = "../Frontend/videos/"
         pass
+    def send_requested_chunk(self, data, conn):
+        video_name = data.get("video_name")
+        chunk_number = data.get("chunk_number")
+        with open(f'{self.video_dir}video_{video_name}_{chunk_number}.mp4', 'rb') as f:
+            binary_chunk = f.read()
+        response = {
+                "message_comment": "Request action fulfilled",
+                "message_code": 631,
+                "video_len": len(binary_chunk),
+                "video_name": video_name,
+                "chunk_number": chunk_number
+            }
+        response = json.dumps(response)
+        response_size = len(response)
+        conn.send(response_size.to_bytes(4, "big"))
+        conn.send(response.encode("utf-8"))
+        conn.send(binary_chunk)
+
+    def receive_chunk(self, data, conn):
+        video_len = data.get("video_len")
+        video_chunk = b''
+        while video_len > 0:
+            video_sub_chunk = conn.recv(video_len).decode("utf-8")
+            video_chunk += video_sub_chunk
+            video_len -= len(video_sub_chunk)
+        video_name = data.get("video_name")
+        chunk_number = data.get("chunk_number")
+        with open(f"{self.video_dir}video_{video_name}_{chunk_number}.mp4", "wb") as f:
+            f.write(video_chunk)
+
     def handle_peer(self, conn):
         global json_size
         global json_message
@@ -65,39 +95,16 @@ class Peer_sender_side:
                 # Parse the JSON message
                 data = json.loads(json_message)
                 json_message = ""
-                message_code = data.get("message_type")
+                message_code = data.get("message_code")
                 print(message_code)
                 
                 if message_code == 310:
                     # assuming peer is requesting 1 chunk at a time
-                    video_name = data.get("video_name")
-                    chunk_number = data.get("chunk_number")
-                    with open(f'{self.video_dir}video_{video_name}_{chunk_number}.mp4', 'rb') as f:
-                        binary_chunk = f.read()
-                    response = {
-                            "message_comment": "Request action fulfilled",
-                            "message_code": 631,
-                            "video_len": len(binary_chunk),
-                            "video_name": video_name,
-                            "chunk_number": chunk_number
-                        }
-                    response = json.dumps(response)
-                    response_size = len(response)
-                    conn.send(response_size.to_bytes(4, "big"))
-                    conn.send(response.encode("utf-8"))
-                    conn.send(binary_chunk)
+                    self.send_requested_chunk(data, conn)
+                    
                 
                 elif message_code == 631: #receiving chunk
-                    video_len = data.get("video_len")
-                    video_chunk = b''
-                    while video_len > 0:
-                        video_sub_chunk = conn.recv(video_len).decode("utf-8")
-                        video_chunk += video_sub_chunk
-                        video_len -= len(video_sub_chunk)
-                    video_name = data.get("video_name")
-                    chunk_number = data.get("chunk_number")
-                    with open(f"{self.video_dir}video_{video_name}_{chunk_number}.mp4", "wb") as f:
-                        f.write(video_chunk)
+                    self.receive_chunk(data, conn)
                     # TODO:report updated chunk collection to tracker
                 else:
                     print(message)
@@ -133,10 +140,11 @@ class Peer_sender_side:
 
 if __name__ == "__main__":
 
-    peer = Peer()
+    sender_side = PeerSenderSide()
+    peer = Peer(sender_side)
 
-    server_side = threading.Thread(target=peer.handle_server, daemon=True)
-    server_side.start()
+    tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
+    tracker_side.start()
 
     request = {
         "video" : "v2",
