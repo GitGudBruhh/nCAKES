@@ -24,12 +24,14 @@ def play_all_chunks(TOTAL_CHUNKS, chunk_dict):
         ["ffplay", "-i", "pipe:0", "-fflags", "nobuffer", "-flags", "low_delay", "-loglevel", "quiet"],
         stdin=subprocess.PIPE
     )
-
     try:
+        # print(TOTAL_CHUNKS)
         for i in range(0, TOTAL_CHUNKS):
             chunk_name = i
             binary_data = wait_for_chunk(chunk_dict, chunk_name)
             player.stdin.write(binary_data)
+            time.sleep(0.5)
+            print(f"played chunk{i}")
     finally:
         player.stdin.close()
         player.wait()
