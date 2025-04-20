@@ -9,7 +9,7 @@ class PeerReceiverSide:
 
     def receive_chunk(self, data, conn):
         """
-        Receives chunks from other peers
+        Saves chunks received from other peers
 
         :param data: json object containing the video and chunk info
         :param conn: connection socket between requesting and sending peer
@@ -28,6 +28,13 @@ class PeerReceiverSide:
 
 
     def handle_peer(self, conn, parent = None):
+        """
+        Addresses video chunks sent by other peers
+
+        :param conn: connection socket between requesting and sending peer
+        :param parent: the parent's 'self' object
+        :return: None
+        """
         global json_size
         global json_message
         json_size = 0
