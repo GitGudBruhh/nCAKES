@@ -87,3 +87,6 @@ class PeerReceiverSide:
             response_len = len(response).to_bytes(4, 'big')
             conn.send(response_len)
             conn.send(response.encode("utf-8"))
+        
+        finally:
+            conn.close()

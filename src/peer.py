@@ -1,8 +1,8 @@
-from http import server
 import socket
 import json
 import time
 import threading
+import random
 from ffplay import play_all_chunks
 
 from Peer.server_con import ServerConnection
@@ -124,8 +124,8 @@ class Peer:
         while len(self.videos[video_name].avail_chunks) < video_len:
              for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
                  
-
-                cur_peer = peer_info[chunk_num % total_peers]
+                random_peer = random.randint(total_peers)
+                cur_peer = peer_info[random_peer]
 
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 
@@ -137,7 +137,7 @@ class Peer:
                                                 args=(conn, self.videos[video_name], chunk_num))
                 req_chunk.start()
 
-             # Wait 
+             # Wait before requesting again
              time.sleep(5)
 
 if __name__ == "__main__":
