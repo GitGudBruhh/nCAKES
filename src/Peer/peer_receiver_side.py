@@ -58,7 +58,7 @@ class PeerReceiverSide:
                 message_code = data.get("message_code")
                 print(message_code)
                 
-                if message_code == 631: #receiving chunk
+                if message_code == 632: #receiving chunk
                     self.receive_chunk(data, conn)
                     video_name = data.get("video_name")
                     chunk_number = data.get("chunk_number")
