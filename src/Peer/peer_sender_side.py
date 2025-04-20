@@ -19,7 +19,7 @@ class PeerSenderSide:
         """
         video_name = data.get("video_name")
         chunk_number = data.get("chunk_number")
-        with open(f'{self.video_dir}video_{video_name}_{chunk_number}.mp4', 'rb') as f:
+        with open(f'./tests/Frontend/video_0.mp4', 'rb') as f:
             binary_chunk = f.read()
         response = {
                 "message_comment": "Chunk request fulfilled",

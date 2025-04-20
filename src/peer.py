@@ -7,15 +7,17 @@ from Peer.server_con import ServerConnection
 from Peer.peer_receiver_side import PeerReceiverSide
 from Peer.peer_sender_side import PeerSenderSide
 
+from video import Video
+
 class Peer:
 
     def __init__(self):
         
-        # self.ip_address = '10.200.244.162'
-        self.ip_address = "127.0.0.1"
+        # self.ip_address = '127.0.0.1'
+        self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("127.0.0.1", 8080)
+        self.server_conn = ServerConnection("192.168.0.110", 8080)
         self.server_handle_interval = 5
 
         # Peer to Peer Server (For sending data)
@@ -36,27 +38,29 @@ class Peer:
 
                 # Update this clients available chunks to the server periodically
                 for video in self.videos.keys():
-                    self.server_conn.update_chunks(video, self.videos[video])
+                    self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
 
 
                 #TODO Send Alive pings once in a while
                 # self.server_conn.send_alive_to_server()
 
-            time.sleep(self.server_handle_interval)
+            time.sleep(self.server_handle_interval + 1000)
 
     def start_sender_side(self):
+
         print("Starting sender-side of this peer...")
-        
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sender.bind((self.ip_address, 9090))
         sender.listen(10)
+
         print("Sender-side started...")
 
         try:
             while True:
                 conn, address = sender.accept()
                 print(f"Connection from {address} has been established.")
-                client_handler = threading.Thread(target=self.server.handle_peer, 
+                client_handler = threading.Thread(target=self.sender_side.handle_peer, 
                                                     args=(conn,), #args should be a tuple
                                                     kwargs = {'parent': self}) 
                 client_handler.start()
@@ -93,9 +97,17 @@ if __name__ == "__main__":
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
 
+    video = Video("amogh.mp4", 10)
+    video.avail_chunks = set((0, 1, 2, 3, 4, 5))
+
+    peer.videos = {
+        "amogh.mp4" : video
+    }
+
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
     
-    peer.start_receiver_side()
+    while True:
+        pass
 
     peer.server_conn.conn.close()
