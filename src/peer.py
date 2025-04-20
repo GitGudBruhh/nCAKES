@@ -27,7 +27,7 @@ class Peer:
         # Peer to Peer client (For requesting and receiving data)
         self.receiver_side = PeerReceiverSide()
 
-        self.videos = {}
+        self.videos : dict[str, Video] = {}
 
     def handle_server(self):
         with self.server_conn.conn_lock:
