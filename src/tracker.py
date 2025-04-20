@@ -103,7 +103,7 @@ class Tracker:
         """
         chunks = uploader_info
         ip_client = address[0]
-        message_type = 641
+        message_code = 641
         message_comment = "Updated Chunks Successfully!"
         peer_identifier = None
 
@@ -115,14 +115,14 @@ class Tracker:
         if peer_identifier is None:
             print("Unknown peer IP:", ip_client)
             message_comment = "Failed to update chunks!"
-            message_type = 741
+            message_code = 741
 
         response = {
             "message_comment": message_comment,
-            "message_type": message_type,
+            "message_code": message_code,
         }
 
-        if message_type == 741:
+        if message_code == 741:
             response = json.dumps(response).encode('utf-8')
             msg_len = len(response)
             conn.send(msg_len.to_bytes(4, byteorder="big"))
@@ -153,13 +153,13 @@ class Tracker:
         """
         if (client, address) not in self.peers:
             self.peers.append((client, address))
-            message_comment = "Registration Successfull!"
+            message_comment = "Registration Successful!"
         else:
             message_comment = "The peer has already registered!"
 
         response = {
             "message_comment": message_comment,
-            "message_type": 621
+            "message_code": 621
         }
 
         response = json.dumps(response).encode('utf-8')
@@ -179,15 +179,15 @@ class Tracker:
 
         if peer in self.peers:
             self.peers.remove(peer)
-            message_type = 651
+            message_code = 651
             message_comment = "Successfully Deregistered!"
         else:
-            message_type = 751
+            message_code = 751
             message_comment = "Peer not found in the register!"
 
         response = {
             "message_comment": message_comment,
-            "message_type": message_type
+            "message_code": message_code
         }
 
         response = json.dumps(response).encode('utf-8')
@@ -237,13 +237,13 @@ class Tracker:
                     if is_all_available:
                         response = {
                             "message_comment": "Chunk request fulfilled",
-                            "message_type": 631,
+                            "message_code": 631,
                             "peers": peers_containing_range
                         }
                     else:
                         response = {
                             "message_comment": "Request cannot be fulfilled",
-                            "message_type": 731,
+                            "message_code": 731,
                             "peers": peers_containing_range
                         }
 
@@ -260,7 +260,7 @@ class Tracker:
                 else:  # 799 Invalid message code/Structure
                     response = {
                         "message_comment": "Invalid message code",
-                        "message_type": 799}
+                        "message_code": 799}
 
                     response = json.dumps(response).encode('utf-8')
                     msg_len = len(response)
@@ -270,7 +270,7 @@ class Tracker:
             except json.JSONDecodeError:
                 response = {
                     "message_comment": "Invalid JSON",
-                    "message_type": 799}
+                    "message_code": 799}
 
                 response = json.dumps(response).encode('utf-8')
                 msg_len = len(response)
