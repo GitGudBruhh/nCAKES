@@ -51,15 +51,15 @@ class Peer:
             while True:
                 conn, address = sender.accept()
                 print(f"Connection from {address} has been established.")
-                client_handler = threading.Thread(target=self.server.handle_peer, 
+                client_handler = threading.Thread(target=self.server.handle_peer,
                                                     args=(conn,), #args should be a tuple
-                                                    kwargs = {'parent': self}) 
+                                                    kwargs = {'parent': self})
                 client_handler.start()
         except KeyboardInterrupt:
             print("Shutting down sender-side of this peer...")
         finally:
             sender.close()
-            print("Sender-side of this peer closed.")   
+            print("Sender-side of this peer closed.")
 
     def start_receiver_side(self):
         # connect to tracker - done in server_conn
@@ -72,7 +72,7 @@ class Peer:
             }
 
             self.server_conn.request_chunks(request)
-            
+
             # receive chunk info
             message_bytes = self.server_conn.conn.recv(4)
             if not message_bytes:
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     tracker_side.start()
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
-    
+
     peer.start_receiver_side()
 
     request = {
