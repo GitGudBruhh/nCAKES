@@ -98,15 +98,4 @@ if __name__ == "__main__":
     
     peer.start_receiver_side()
 
-    request = {
-        "video" : "video_2",
-        "chunk_range_start" : 2,
-        "chunk_range_end" : 4
-    }
-
-    print(peer.server_conn.request_chunks(request))
-
-    peer.videos["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
-
-    time.sleep(5)
     peer.server_conn.conn.close()

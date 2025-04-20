@@ -22,8 +22,8 @@ class PeerSenderSide:
         with open(f'{self.video_dir}video_{video_name}_{chunk_number}.mp4', 'rb') as f:
             binary_chunk = f.read()
         response = {
-                "message_comment": "Request action fulfilled",
-                "message_code": 631,
+                "message_comment": "Chunk request fulfilled",
+                "message_code": 632,
                 "video_len": len(binary_chunk),
                 "video_name": video_name,
                 "chunk_number": chunk_number
@@ -63,7 +63,7 @@ class PeerSenderSide:
                 message_code = data.get("message_code")
                 print(message_code)
                 
-                if message_code == 310:
+                if message_code == 320:
                     # assuming peer is requesting 1 chunk at a time
                     self.send_requested_chunk(data, conn)
                 else:
