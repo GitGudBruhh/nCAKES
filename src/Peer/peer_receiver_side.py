@@ -1,4 +1,5 @@
 import json
+
 from video import Video
 
 import socket
@@ -39,7 +40,10 @@ class PeerReceiverSide:
         """
 
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        conn.connect((ip_addr, 9090))
+        try:
+            conn.connect((ip_addr, 9090))
+        except ConnectionRefusedError:
+            print(f"{ip_addr} is not responding")
 
         json_message = ""
 
