@@ -68,10 +68,10 @@ class Peer:
                 client_handler.start()
 
         except KeyboardInterrupt:
-            print("Shutting down sender-side of this peer...")
+            print("[SENDER_SIDE] Shutting down sender-side of this peer...")
         finally:
             sender.close()
-            print("Sender-side of this peer closed.")
+            print("[SENDER_SIDE] Sender-side of this peer closed.")
 
     def start_receiver_side(self):
         # connect to tracker - done in server_conn
@@ -86,31 +86,29 @@ class Peer:
         video_len = chunks["metadata"]["vid_len"]
         self.videos[video_name] = Video(request["video"], video_len)
 
-        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        conn.connect((peer_info[0]["peer_1"]["ip_addr"], 9090))
-
         video_player = threading.Thread(target=play_all_chunks, args=(video_len, self.videos[video_name].data))
         video_player.start()
 
-        for i in range(video_len):
-            if i == 6 or i == 9:
-                time.sleep(10)
-            req = {
-                "message_code" : 320,
-                "video_name" : "amogh.mp4",
-                "chunk_number": i
-            }
-            req = json.dumps(req)
-            conn.send(len(req).to_bytes(4, "big"))
-            conn.send(req.encode("utf-8"))
-            self.videos[video_name].data.update(self.receiver_side.handle_peer(conn))
-            print("[RECEIVER]", self.videos[video_name].data.keys())
+        print(peer_info)
+        print(chunks)
+
+        total_peers = len(peer_info)
+
+        for chunk_num in range(video_len):
             
-        # parse tracker's reply. extract peer info
+            cur_peer = chunk_num % total_peers  
+
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect((peer_info[cur_peer]["peer_1"]["ip_addr"], 9090))
+
+            video_player = threading.Thread(target=self.receiver_side.handle_peer, 
+                                            args=(conn, self.videos[video_name], chunk_num))
+            video_player.start()
+            
         # connect to peers -> call handle_peer()
 
         #TODO Remove this later, but keep it for now or else client will bombard server with requests
-        time.sleep(10)
+        # time.sleep(10)
 
 if __name__ == "__main__":
 
@@ -123,7 +121,7 @@ if __name__ == "__main__":
     # sender_side.start()
 
     # video = Video("amogh.mp4", 0)
-    # video.load_video("./videos/stream.ts", 548576)     # Chunk size of 1MB
+    # video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
 
     # peer.videos = {
     #     "amogh.mp4" : video
