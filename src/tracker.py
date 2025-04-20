@@ -52,14 +52,18 @@ class Tracker:
         # # Check if all requested chunks are available
         # is_all_available = (requested_and_available == requested)
 
-        return (self.manifest[vid], True)
+        if vid in self.manifest.keys():
+            return (self.manifest[vid], True)
+        else:
+            return (None, False)
 
-    def update_manifest(self, available_chunks, vid_name, conn, address):
+    def update_manifest(self, available_chunks, vid_name, vid_length, conn, address):
         """
         Updates the manifest with new chunk information.
 
         :param uploader_info: uploader info (chunk list)
         :param vid_name: Video name as a string
+        :param vid_length: Video length as number of chunks
         :param conn: Connection object
         :param address: Address tuple of the uploader
         :return: None
@@ -94,13 +98,16 @@ class Tracker:
 
         if vid_name not in self.manifest:
             self.manifest[vid_name] = {}
+            self.manifest[vid_name]["chunks"] = {}
+            self.manifest[vid_name]["metadata"] = {}
 
-        self.manifest[vid_name][peer_identifier] = set()
+        self.manifest[vid_name]["chunks"][peer_identifier] = set()
+        self.manifest[vid_name]["metadata"] = {"vid_len": vid_length}
 
         for chunk in chunks:
             self.manifest[vid_name][peer_identifier].add(chunk)
 
-        self.manifest[vid_name][peer_identifier] = list(self.manifest[vid_name][peer_identifier])
+        self.manifest[vid_name]["chunks"][peer_identifier] = list(self.manifest[vid_name]["chunks"][peer_identifier])
 
         response = json.dumps(response).encode('utf-8')
         msg_len = len(response)
@@ -234,7 +241,6 @@ class Tracker:
                         response = {
                             "message_comment": "Request cannot be fulfilled",
                             "message_code": 731,
-                            "chunks": chunk_info,
                         }
 
                     response = json.dumps(response).encode('utf-8')
@@ -244,8 +250,9 @@ class Tracker:
 
                 elif message_code == 410:  # 410 Update chunks
                     vid_name = data.get("vid_name")
+                    vid_length = data.get("vid_len")
                     available_chunks = data.get("avail_chunks")
-                    self.update_manifest(available_chunks, vid_name, conn, address)
+                    self.update_manifest(available_chunks, vid_name, vid_length, conn, address)
 
                 else:  # 799 Invalid message code/structure
                     response = {
