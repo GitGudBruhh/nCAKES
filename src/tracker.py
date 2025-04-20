@@ -16,34 +16,34 @@ class Tracker:
         """
         self.peers = []
         self.manifest = {
-            'v1': {
-                'p1': {
+            'video_1': {
+                'peer_1': {
                     'chunks': {1, 2, 3, 4, 5}
                 }
             },
-            'v2': {
-                'p1': {
+            'video_2': {
+                'peer_1': {
                     'chunks': {1, 5}
                 },
-                'p2': {
+                'peer_2': {
                     'chunks': {1, 2, 3, 4, 5}
                 }
             },
-            'v3': {
-                'p2': {
+            'video_3': {
+                'peer_2': {
                     'chunks': {1, 2, 4, 5}
                 }
             }
         }
 
         self.peer_info = {
-            'p1': {
+            'peer_1': {
                 'ip_addr': '127.0.0.1'
             },
-            'p2': {
+            'peer_2': {
                 'ip_addr': '127.0.0.1'
             },
-            'p3': {
+            'peer_3': {
                 'ip_addr': '127.0.0.1'
             },
         }
@@ -178,6 +178,7 @@ class Tracker:
         peer = (client, address)
 
         if peer in self.peers:
+            # TODO: Delete chunks that peer had before deregistering
             self.peers.remove(peer)
             message_code = 651
             message_comment = "Successfully Deregistered!"
@@ -209,12 +210,20 @@ class Tracker:
                 raw_msg_len = conn.recv(4)
                 if not raw_msg_len:
                     break
+
                 msg_len = int.from_bytes(raw_msg_len, byteorder="big")
-                if not msg_len:
-                    break
-                message = conn.recv(msg_len).decode("utf-8")
-                if not message:
-                    break
+
+                # Receive the JSON message
+                read_len = 0
+                remaining_len = msg_len
+                message = b''
+                while read_len < msg_len:
+                    partial_msg = conn.recv(remaining_len)
+                    message += partial_msg
+                    remaining_len -= len(partial_msg)
+                    read_len += len(partial_msg)
+
+                message = message.decode('utf-8')
 
                 # Parse the JSON message
                 data = json.loads(message)
