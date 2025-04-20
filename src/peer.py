@@ -1,3 +1,4 @@
+from http import server
 import socket
 import json
 import time
@@ -27,10 +28,10 @@ class Peer:
         """
         Initializes the Peer instance and sets up connections.
         """
-        self.ip_address = server_ip
+        self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("192.168.0.115", 8080)
+        self.server_conn = ServerConnection(server_ip, 8080)
         self.server_handle_interval = 5
 
         # Peer to Peer Server (For sending data)
