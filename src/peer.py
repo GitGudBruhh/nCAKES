@@ -24,7 +24,7 @@ class Peer:
         self.sender_side = PeerSenderSide()
 
         # Peer to Peer client (For requesting and receiving data)
-        self.receiver_side = None
+        self.receiver_side = PeerReceiverSide()
 
         self.videos = {}
 
@@ -41,8 +41,8 @@ class Peer:
                     self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
 
 
-                #TODO Send Alive pings once in a while
-                # self.server_conn.send_alive_to_server()
+        #         #TODO Send Alive pings once in a while
+        #         # self.server_conn.send_alive_to_server()
 
             time.sleep(self.server_handle_interval + 1000)
 
@@ -76,14 +76,25 @@ class Peer:
         while True:
             # request video chunk info
             request = {
-                "video" : "video_1",
+                "video" : "amogh.mp4",
                 "chunk_range_start" : 0,
-                "chunk_range_end" : 5
+                "chunk_range_end" : 3
             }
 
             data = self.server_conn.request_chunks(request)
             
             print("[RECEIVER]", data)
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect((data[0], 9090))
+            req = {
+                "message_code" : 320,
+                "video_name" : "amogh.mp4",
+                "chunk_number": 0
+            }
+            req = json.dumps(req)
+            conn.send(len(req).to_bytes(4, "big"))
+            conn.send(req.encode("utf-8"))
+            self.receiver_side.handle_peer(conn, parent=self)
             # parse tracker's reply. extract peer info
             # connect to peers -> call handle_peer()
 

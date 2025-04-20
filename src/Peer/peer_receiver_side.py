@@ -23,6 +23,8 @@ class PeerReceiverSide:
             video_len -= len(video_sub_chunk)
         video_name = data.get("video_name")
         chunk_number = data.get("chunk_number")
+        print("received video chunk")
+        # print(video_chunk)
         with open(f"{self.video_dir}video_{video_name}_{chunk_number}.mp4", "wb") as f:
             f.write(video_chunk)
 
