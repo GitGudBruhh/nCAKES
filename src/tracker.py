@@ -51,7 +51,7 @@ class Tracker:
     def get_peers_info(self):
         """
         Returns a list of registered peers.
-        
+
         :return: List of peers
         """
         return self.peers
@@ -59,7 +59,7 @@ class Tracker:
     def get_chunk_info(self, conn, address, chunk_request):
         """
         Retrieves chunk information based on a request.
-        
+
         :param conn: Connection object
         :param address: Address tuple of the peer
         :param chunk_request: JSON-encoded chunk request string
@@ -94,7 +94,7 @@ class Tracker:
     def update_manifest(self, uploader_info, vid_name, conn, address):
         """
         Updates the manifest with new chunk information.
-        
+
         :param uploader_info: uploader info (chunk list)
         :param vid_name: Video name as a string
         :param conn: Connection object
@@ -103,7 +103,7 @@ class Tracker:
         """
         chunks = uploader_info
         ip_client = address[0]
-        message_type = 641
+        message_code = 641
         message_comment = "Updated Chunks Successfully!"
         peer_identifier = None
 
@@ -115,14 +115,14 @@ class Tracker:
         if peer_identifier is None:
             print("Unknown peer IP:", ip_client)
             message_comment = "Failed to update chunks!"
-            message_type = 741
+            message_code = 741
 
         response = {
             "message_comment": message_comment,
-            "message_type": message_type,
+            "message_code": message_code,
         }
 
-        if message_type == 741:
+        if message_code == 741:
             response = json.dumps(response).encode('utf-8')
             msg_len = len(response)
             conn.send(msg_len.to_bytes(4, byteorder="big"))
@@ -138,35 +138,39 @@ class Tracker:
         for chunk in chunks:
             self.manifest[vid_name][peer_identifier]['chunks'].add(chunk)
 
-        response = json.dumps(response)
-        conn.send(response.encode("utf-8"))
+        response = json.dumps(response).encode('utf-8')
+        msg_len = len(response)
+        conn.send(msg_len.to_bytes(4, byteorder="big"))
+        conn.send(response)
 
     def register_new_peer(self, client, address):
         """
         Registers a new peer.
-        
+
         :param client: Connection object for the peer
         :param address: Address tuple of the peer
         :return: None
         """
         if (client, address) not in self.peers:
             self.peers.append((client, address))
-            message_comment = "Registration Successfull!"
+            message_comment = "Registration Successful!"
         else:
             message_comment = "The peer has already registered!"
 
         response = {
             "message_comment": message_comment,
-            "message_type": 621
+            "message_code": 621
         }
 
-        response = json.dumps(response)
-        client.send(response.encode("utf-8"))
+        response = json.dumps(response).encode('utf-8')
+        msg_len = len(response)
+        client.send(msg_len.to_bytes(4, byteorder="big"))
+        client.send(response)
 
     def deregister_peer(self, client, address):
         """
         Deregisters an existing peer.
-        
+
         :param client: Connection object for the peer
         :param address: Address tuple of the peer
         :return: None
@@ -175,24 +179,26 @@ class Tracker:
 
         if peer in self.peers:
             self.peers.remove(peer)
-            message_type = 651
+            message_code = 651
             message_comment = "Successfully Deregistered!"
         else:
-            message_type = 751
+            message_code = 751
             message_comment = "Peer not found in the register!"
 
         response = {
             "message_comment": message_comment,
-            "message_type": message_type
+            "message_code": message_code
         }
 
-        response = json.dumps(response)
-        client.send(response.encode("utf-8"))
+        response = json.dumps(response).encode('utf-8')
+        msg_len = len(response)
+        client.send(msg_len.to_bytes(4, byteorder="big"))
+        client.send(response)
 
     def handle_peer(self, conn, address):
         """
         Handles communication with a peer.
-        
+
         :param conn: Connection object
         :param address: Address tuple of the peer
         :return: None
@@ -231,18 +237,20 @@ class Tracker:
                     if is_all_available:
                         response = {
                             "message_comment": "Chunk request fulfilled",
-                            "message_type": 631,
+                            "message_code": 631,
                             "peers": peers_containing_range
                         }
                     else:
                         response = {
                             "message_comment": "Request cannot be fulfilled",
-                            "message_type": 731,
+                            "message_code": 731,
                             "peers": peers_containing_range
                         }
 
-                    response = json.dumps(response)
-                    conn.send(response.encode("utf-8"))
+                    response = json.dumps(response).encode('utf-8')
+                    msg_len = len(response)
+                    conn.send(msg_len.to_bytes(4, byteorder="big"))
+                    conn.send(response)
 
                 elif message_code == 410:  # 410 Update chunks
                     vid_name = data.get("vid_name")
@@ -250,26 +258,38 @@ class Tracker:
                     self.update_manifest(uploader_info, vid_name, conn, address)
 
                 else:  # 799 Invalid message code/Structure
-                    response = json.dumps({
+                    response = {
                         "message_comment": "Invalid message code",
-                        "message_type": 799})
-                    conn.send(response.encode("utf-8"))
+                        "message_code": 799}
+
+                    response = json.dumps(response).encode('utf-8')
+                    msg_len = len(response)
+                    conn.send(msg_len.to_bytes(4, byteorder="big"))
+                    conn.send(response)
 
             except json.JSONDecodeError:
-                response = json.dumps({
+                response = {
                     "message_comment": "Invalid JSON",
-                    "message_type": 799})
-                conn.send(response.encode("utf-8"))
+                    "message_code": 799}
+
+                response = json.dumps(response).encode('utf-8')
+                msg_len = len(response)
+                conn.send(msg_len.to_bytes(4, byteorder="big"))
+                conn.send(response)
+
             except Exception as e:
-                response = json.dumps({"Tracker error": str(e)})
-                conn.send(response.encode("utf-8"))
+                response = {"Tracker error": str(e)}
+                response = json.dumps(response).encode('utf-8')
+                msg_len = len(response)
+                conn.send(msg_len.to_bytes(4, byteorder="big"))
+                conn.send(response)
 
         return
 
     def start_tracker(self):
         """
         Starts the tracker server.
-        
+
         :return: None
         """
         print("Starting tracker...")

@@ -35,8 +35,8 @@ class Peer:
                     self.server_conn.update_chunks(video, self.videos[video])
 
 
-                # Send Alive pings once in a while
-                self.server_conn.send_alive_to_server()
+                #TODO Send Alive pings once in a while
+                # self.server_conn.send_alive_to_server()
 
             time.sleep(self.server_handle_interval)
 
