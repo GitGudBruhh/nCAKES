@@ -19,7 +19,7 @@ class Peer:
 
         # Peer to Server Connection
         self.server_conn = ServerConnection("192.168.0.110", 8080)
-        self.server_handle_interval = 5
+        self.server_handle_interval = 20
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
@@ -38,6 +38,7 @@ class Peer:
             with self.server_conn.conn_lock:
 
                 # Update this clients available chunks to the server periodically
+                time.sleep(1)
                 for video in self.videos.keys():
                     self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
 
@@ -45,24 +46,24 @@ class Peer:
         #         #TODO Send Alive pings once in a while
         #         # self.server_conn.send_alive_to_server()
 
-            time.sleep(self.server_handle_interval + 1000)
+            time.sleep(self.server_handle_interval)
 
     def start_sender_side(self):
 
-        print("Starting sender-side of this peer...")
+        print("[SENDER_SIDE] Starting sender-side of this peer...")
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sender.bind((self.ip_address, 9090))
         sender.listen(10)
 
-        print("Sender-side started...")
+        print("[SENDER_SIDE] Sender-side started...")
 
         try:
             while True:
                 conn, address = sender.accept()
-                print(f"Connection from {address} has been established.")
+                print(f"[SENDER_SIDE] Connection from {address} has been established.")
                 client_handler = threading.Thread(target=self.sender_side.handle_peer, 
-                                                    args=(conn,), #args should be a tuple
+                                                    args=(conn, self.videos), #args should be a tuple
                                                     kwargs = {'parent': self}) 
                 client_handler.start()
 
@@ -110,8 +111,10 @@ if __name__ == "__main__":
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
 
-    video = Video("amogh.mp4", 10)
-    video.avail_chunks = set((0, 1, 2, 3, 4, 5))
+    video = Video("amogh.mp4", 0)
+    video.load_video("./videos/stream.ts", 2048576)     # Chunk size of 1MB
+    
+    print(video.data.keys())
 
     peer.videos = {
         "amogh.mp4" : video
