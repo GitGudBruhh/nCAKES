@@ -277,12 +277,14 @@ class Tracker:
                 conn.send(msg_len.to_bytes(4, byteorder="big"))
                 conn.send(response)
 
-            # except Exception as e:
-            #     response = {"Tracker error": str(e)}
-            #     response = json.dumps(response).encode('utf-8')
-            #     msg_len = len(response)
-            #     conn.send(msg_len.to_bytes(4, byteorder="big"))
-            #     conn.send(response)
+            except BrokenPipeError:
+                logging.debug("Unexpected connection closure")
+                conn.close()
+                # response = {"Tracker error": str(e)}
+                # response = json.dumps(response).encode('utf-8')
+                # msg_len = len(response)
+                # conn.send(msg_len.to_bytes(4, byteorder="big"))
+                # conn.send(response)
 
         return
 
