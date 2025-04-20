@@ -91,7 +91,7 @@ class Tracker:
 
         return (peers_containing_range, is_all_available)
 
-    def update_manifest(self, uploader_info, vid_name, conn, address):
+    def update_manifest(self, available_chunks, vid_name, conn, address):
         """
         Updates the manifest with new chunk information.
 
@@ -101,7 +101,7 @@ class Tracker:
         :param address: Address tuple of the uploader
         :return: None
         """
-        chunks = uploader_info
+        chunks = available_chunks
         ip_client = address[0]
         message_code = 641
         message_comment = "Updated Chunks Successfully!"
@@ -176,9 +176,24 @@ class Tracker:
         :return: None
         """
         peer = (client, address)
-
+        ip_client = address[0]
+        peer_identifier = None
+    
         if peer in self.peers:
-            # TODO: Delete chunks that peer had before deregistering
+            # update the manifest i.e delete the chunks that had deregistering peer had.
+            for peer_id, info in self.peer_info.items():
+                if info["ip_addr"] == ip_client:
+                    peer_identifier = peer_id
+                    break
+            
+            for video_id in list(self.manifest.keys()):
+                if peer_identifier in self.manifest[video_id]:
+                    del self.manifest[video_id][peer_identifier]
+                
+                # remove the video from manifest if it does not have any peer.
+                if not self.manifest[video_id]:
+                    del self.manifest[video_id]
+
             self.peers.remove(peer)
             message_code = 651
             message_comment = "Successfully Deregistered!"
@@ -263,8 +278,8 @@ class Tracker:
 
                 elif message_code == 410:  # 410 Update chunks
                     vid_name = data.get("vid_name")
-                    uploader_info = data.get("avail_chunks")
-                    self.update_manifest(uploader_info, vid_name, conn, address)
+                    available_chunks = data.get("avail_chunks")
+                    self.update_manifest(available_chunks, vid_name, conn, address)
 
                 else:  # 799 Invalid message code/Structure
                     response = {
@@ -286,12 +301,12 @@ class Tracker:
                 conn.send(msg_len.to_bytes(4, byteorder="big"))
                 conn.send(response)
 
-            except Exception as e:
-                response = {"Tracker error": str(e)}
-                response = json.dumps(response).encode('utf-8')
-                msg_len = len(response)
-                conn.send(msg_len.to_bytes(4, byteorder="big"))
-                conn.send(response)
+            # except Exception as e:
+            #     response = {"Tracker error": str(e)}
+            #     response = json.dumps(response).encode('utf-8')
+            #     msg_len = len(response)
+            #     conn.send(msg_len.to_bytes(4, byteorder="big"))
+            #     conn.send(response)
 
         return
 
@@ -303,6 +318,7 @@ class Tracker:
         """
         print("Starting tracker...")
         tracker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tracker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         tracker.bind(('127.0.0.1', 8080))
         tracker.listen(10)
         print("Tracker started...")
