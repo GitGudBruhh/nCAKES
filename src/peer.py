@@ -11,9 +11,22 @@ from Peer.peer_sender_side import PeerSenderSide
 from video import Video
 
 class Peer:
+    """
+    Represents a peer in a peer-to-peer network that can send and receive video chunks.
+
+    Attributes:
+        ip_address (str): The IP address of the peer.
+        server_conn (ServerConnection): The connection to the server.
+        server_handle_interval (int): The interval for handling server updates.
+        sender_side (PeerSenderSide): The sender side for peer-to-peer communication.
+        receiver_side (PeerReceiverSide): The receiver side for peer-to-peer communication.
+        videos (dict): A dictionary of videos available for sharing.
+    """
 
     def __init__(self):
-
+        """
+        Initializes the Peer instance and sets up connections.
+        """
         # self.ip_address = '127.0.0.1'
         self.ip_address = "0.0.0.0"
 
@@ -30,6 +43,12 @@ class Peer:
         self.videos : dict[str, Video] = {}
 
     def handle_server(self):
+        """
+        Handles communication with the server, including registering the peer
+        and periodically updating the server with available video chunks.
+
+        This method runs indefinitely in a loop until interrupted.
+        """
         with self.server_conn.conn_lock:
             self.server_conn.register_with_server()
 
@@ -49,8 +68,13 @@ class Peer:
             time.sleep(self.server_handle_interval)
 
     def start_sender_side(self):
+        """
+        Starts the sender side of the peer, allowing it to accept connections
+        from other peers and send video chunks.
 
-        print("[SENDER_SIDE] Starting sender-side of this peer...")
+        This method runs indefinitely in a loop until interrupted.
+        """
+
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sender.bind((self.ip_address, 9090))
@@ -74,6 +98,12 @@ class Peer:
             print("[SENDER_SIDE] Sender-side of this peer closed.")
 
     def start_receiver_side(self):
+        """
+        Starts the receiver side of the peer, requesting video chunks from
+        the server and handling incoming connections from other peers.
+
+        This method runs until the required video chunks are received.
+        """
         # connect to tracker - done in server_conn
         # request video chunk info
         video_name = "amogh.mp4"
@@ -94,24 +124,26 @@ class Peer:
         while len(self.videos[video_name].avail_chunks) < video_len:
              for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
                  
-                 cur_peer = peer_info[chunk_num % total_peers]
- 
-                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                 
-                 print("peer_info", cur_peer[list(cur_peer.keys())[0]])
- 
-                 conn.connect((cur_peer[list(cur_peer.keys())[0]]["ip_addr"], 9090))
-                 
-                 req_chunk = threading.Thread(target=self.receiver_side.handle_peer, 
-                                                 args=(conn, self.videos[video_name], chunk_num))
-                 req_chunk.start()
-                 
-             # Wait
+
+                cur_peer = peer_info[chunk_num % total_peers]
+
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                
+                # print("peer_info", cur_peer[list(cur_peer.keys())[0]])
+
+                conn.connect((cur_peer[list(cur_peer.keys())[0]]["ip_addr"], 9090))
+                
+                req_chunk = threading.Thread(target=self.receiver_side.handle_peer, 
+                                                args=(conn, self.videos[video_name], chunk_num))
+                req_chunk.start()
+
+             # Wait 
              time.sleep(5)
 
 if __name__ == "__main__":
 
     peer = Peer()
+
 
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
@@ -119,17 +151,21 @@ if __name__ == "__main__":
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
 
-    video = Video("amogh.mp4", 0)
-    video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
 
-    peer.videos = {
-        "amogh.mp4" : video
-    }
+    host_vid_response = input("Do you want to host the video or receive video? (Type host/rec)")
+    if host_vid_response == "host":
+        video = Video("amogh.mp4", 0)
+        video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
 
-    # peer.start_receiver_side()
+        peer.videos = {
+            "amogh.mp4" : video
+        }
+    else:
+        peer.start_receiver_side()
 
     try:
         while True:
+            # Stop the main threading from exiting
             pass
     except KeyboardInterrupt:
         response = {

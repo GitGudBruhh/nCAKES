@@ -7,6 +7,14 @@ from video import Video
 class ServerConnection:
 
     def __init__(self, server_ip, server_port):
+        """
+        Initializes the ServerConnection instance.
+
+        :param server_ip: The IP address of the server to connect to.
+        :type server_ip: str
+        :param server_port: The port number of the server to connect to.
+        :type server_port: int
+        """
 
         self.server_ip = server_ip
         self.server_port = server_port
@@ -18,11 +26,22 @@ class ServerConnection:
 
 
     def send_msg_len(self, msg):
+        """
+        Sends the length of the message to the server.
+
+        :param msg: The message whose length is to be sent.
+        :type msg: str
+        """
         msg_len = len(msg)
         length = msg_len.to_bytes(4, byteorder='big')
         self.conn.send(length)
 
     def register_with_server(self):
+        """
+        Registers the client with the server.
+
+        :raises Exception: If the server responds with an error message.
+        """
 
         message = {
             "message_code" : 210,
@@ -51,6 +70,15 @@ class ServerConnection:
             raise(data["message_comment"])
 
     def request_chunks(self, request : dict):
+        """
+        Requests video chunks from the server.
+
+        :param request: A dictionary containing the chunk request details.
+        :type request: dict
+        :return: A tuple containing the chunks and peer information if successful,
+                 or None if the request was not successful.
+        :rtype: tuple or None
+        """
 
         req_chunks = json.dumps(request)
 
@@ -81,6 +109,12 @@ class ServerConnection:
             return None
 
     def update_chunks(self, vid : Video):
+        """
+        Updates the server with the available chunks of a video.
+
+        :param vid: The Video object containing the video details.
+        :type vid: Video
+        """
 
         message = {
             "message_code" : 410,
@@ -110,7 +144,13 @@ class ServerConnection:
             pass
 
     def send_alive_to_server(self):
+        """
+        Sends a heartbeat message to the server to indicate that the client is alive.
 
+        :return: None if the server acknowledges the heartbeat.
+        :rtype: None
+        """
+        
         message = {
             "message_code" : 101,
             "message_comment" : "Alive"
