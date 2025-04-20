@@ -13,13 +13,13 @@ from video import Video
 class Peer:
 
     def __init__(self):
-        
+
         # self.ip_address = '127.0.0.1'
         self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
         self.server_conn = ServerConnection("192.168.0.110", 8080)
-        self.server_handle_interval = 5
+        self.server_handle_interval = 20
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
@@ -49,28 +49,28 @@ class Peer:
 
     def start_sender_side(self):
 
-        print("Starting sender-side of this peer...")
+        print("[SENDER_SIDE] Starting sender-side of this peer...")
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sender.bind((self.ip_address, 9090))
         sender.listen(10)
 
-        print("Sender-side started...")
+        print("[SENDER_SIDE] Sender-side started...")
 
         try:
             while True:
                 conn, address = sender.accept()
-                print(f"Connection from {address} has been established.")
-                client_handler = threading.Thread(target=self.sender_side.handle_peer, 
-                                                    args=(conn,), #args should be a tuple
-                                                    kwargs = {'parent': self}) 
+                print(f"[SENDER_SIDE] Connection from {address} has been established.")
+                client_handler = threading.Thread(target=self.sender_side.handle_peer,
+                                                    args=(conn, self.videos), #args should be a tuple
+                                                    kwargs = {'parent': self})
                 client_handler.start()
 
         except KeyboardInterrupt:
             print("Shutting down sender-side of this peer...")
         finally:
             sender.close()
-            print("Sender-side of this peer closed.")   
+            print("Sender-side of this peer closed.")
 
     def start_receiver_side(self):
         # connect to tracker - done in server_conn
@@ -114,8 +114,15 @@ if __name__ == "__main__":
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
 
-    video = Video("amogh.mp4", 10)
-    video.avail_chunks = set((0, 1, 2, 3, 4, 5))
+    sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
+    sender_side.start()
+
+    peer.start_receiver_side()
+
+    video = Video("amogh.mp4", 0)
+    video.load_video("./videos/stream.ts", 2048576)     # Chunk size of 1MB
+
+    print(video.data.keys())
 
     peer.videos = {
         "amogh.mp4" : video
@@ -125,7 +132,7 @@ if __name__ == "__main__":
     sender_side.start()
 
     peer.start_receiver_side()
-    
+
     while True:
         pass
 

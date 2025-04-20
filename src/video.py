@@ -6,7 +6,7 @@ class Video:
         self.total_chunks = total_chunks
 
         self.avail_chunks = set()
-        self.data = {}
+        self.data : dict = {}
 
     def load_chunk(self, chunk_id, data):
         if chunk_id < self.total_chunks:
@@ -15,7 +15,7 @@ class Video:
         else:
             print("WARNING: Invalid Chunk ID")
             
-    def get_chunk(self, chunk_id):
+    def get_chunk(self, chunk_id : int):
         if chunk_id in self.avail_chunks:  
             if chunk_id < self.total_chunks:
                 return self.data[chunk_id]
@@ -41,3 +41,22 @@ class Video:
 
         else:
             print("ERROR: Not all chunks are available. Unable to save video.")
+
+    def load_video(self, path, chunk_size):
+        
+        if not os.path.exists(path):
+            print(f"ERROR: File '{path}' not found.")
+            return
+
+        with open(path, 'rb') as video_file:
+            chunk_id = 0
+            while True:
+                chunk_data = video_file.read(chunk_size)
+                if not chunk_data:
+                    break
+                self.data[chunk_id] = chunk_data
+                self.avail_chunks.add(chunk_id)
+                chunk_id += 1
+
+        self.total_chunks = chunk_id
+        print(f"Video '{self.name}' loaded from {path} with {chunk_id} chunks.")

@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import json
+import logging
 
 
 class Tracker:
@@ -15,38 +16,9 @@ class Tracker:
         Initializes the Tracker with peers, manifest, and peer info.
         """
         self.peers = []
-        self.manifest = {
-            'video_1': {
-                'peer_1': {
-                    'chunks': {1, 2, 3, 4, 5}
-                }
-            },
-            'video_2': {
-                'peer_1': {
-                    'chunks': {1, 5}
-                },
-                'peer_2': {
-                    'chunks': {1, 2, 3, 4, 5}
-                }
-            },
-            'video_3': {
-                'peer_2': {
-                    'chunks': {1, 2, 4, 5}
-                }
-            }
-        }
+        self.manifest = {}
 
-        self.peer_info = {
-            'peer_1': {
-                'ip_addr': '127.0.0.1'
-            },
-            'peer_2': {
-                'ip_addr': '127.0.0.1'
-            },
-            'peer_3': {
-                'ip_addr': '127.0.0.1'
-            },
-        }
+        self.peer_info = {}
 
     def get_peers_info(self):
         """
@@ -70,26 +42,17 @@ class Tracker:
         vid = chunk_request_dict['video']
 
         # Retrieve requested chunk range
-        chunk_range_start = chunk_request_dict['chunk_range_start']
-        chunk_range_end = chunk_request_dict['chunk_range_end']
-        requested = {i for i in range(chunk_range_start, chunk_range_end + 1)}
+        # chunk_range_start = chunk_request_dict['chunk_range_start']
+        # chunk_range_end = chunk_request_dict['chunk_range_end']
+        # requested = {i for i in range(chunk_range_start, chunk_range_end + 1)}
+        #
+        # available = {chunk for chunk in chunks for _, chunks in self.manifest[vid].items()}
+        # requested_and_available = available.intersection(requested)
+        #
+        # # Check if all requested chunks are available
+        # is_all_available = (requested_and_available == requested)
 
-        peers_containing_range = []
-        chunks_covered = set()
-
-        # Best effort set cover of requested chunks
-        for peer in self.manifest[vid]:
-            available = self.manifest[vid][peer]['chunks']
-            requested_and_available = available.intersection(requested)
-
-            if len(requested_and_available - chunks_covered) > 0:
-                peers_containing_range.append(peer)
-                chunks_covered.update(requested_and_available)
-
-        # Check if all requested chunks are available
-        is_all_available = (chunks_covered == requested)
-
-        return (peers_containing_range, is_all_available)
+        return (self.manifest[vid], True)
 
     def update_manifest(self, available_chunks, vid_name, conn, address):
         """
@@ -103,17 +66,17 @@ class Tracker:
         """
         chunks = available_chunks
         ip_client = address[0]
-        message_code = 641
-        message_comment = "Updated Chunks Successfully!"
         peer_identifier = None
 
         for peer_id, info in self.peer_info.items():
             if info["ip_addr"] == ip_client:
+                message_code = 641
+                message_comment = "Updated Chunks Successfully!"
                 peer_identifier = peer_id
                 break
 
         if peer_identifier is None:
-            print("Unknown peer IP:", ip_client)
+            logging.debug("Unknown peer IP:", ip_client)
             message_comment = "Failed to update chunks!"
             message_code = 741
 
@@ -132,11 +95,12 @@ class Tracker:
         if vid_name not in self.manifest:
             self.manifest[vid_name] = {}
 
-        if peer_identifier not in self.manifest[vid_name]:
-            self.manifest[vid_name][peer_identifier] = {'chunks': set()}
+        self.manifest[vid_name][peer_identifier] = set()
 
         for chunk in chunks:
-            self.manifest[vid_name][peer_identifier]['chunks'].add(chunk)
+            self.manifest[vid_name][peer_identifier].add(chunk)
+
+        self.manifest[vid_name][peer_identifier] = list(self.manifest[vid_name][peer_identifier])
 
         response = json.dumps(response).encode('utf-8')
         msg_len = len(response)
@@ -153,6 +117,7 @@ class Tracker:
         """
         if (client, address) not in self.peers:
             self.peers.append((client, address))
+            self.peer_info[f"peer_{len(self.peers)}"] = {'ip_addr': address[0]}
             message_comment = "Registration Successful!"
         else:
             message_comment = "The peer has already registered!"
@@ -178,18 +143,18 @@ class Tracker:
         peer = (client, address)
         ip_client = address[0]
         peer_identifier = None
-    
+
         if peer in self.peers:
             # update the manifest i.e delete the chunks that had deregistering peer had.
             for peer_id, info in self.peer_info.items():
                 if info["ip_addr"] == ip_client:
                     peer_identifier = peer_id
                     break
-            
+
             for video_id in list(self.manifest.keys()):
                 if peer_identifier in self.manifest[video_id]:
                     del self.manifest[video_id][peer_identifier]
-                
+
                 # remove the video from manifest if it does not have any peer.
                 if not self.manifest[video_id]:
                     del self.manifest[video_id]
@@ -245,7 +210,7 @@ class Tracker:
                 message_code = data.get("message_code")
                 message_comment = data.get("message_comment")
 
-                print(f"Received {message_code}: {message_comment}")
+                logging.debug(f"Received {message_code}: {message_comment} from {address}")
 
                 if message_code == 210:  # 210 Register
                     self.register_new_peer(conn, address)
@@ -253,22 +218,23 @@ class Tracker:
                 elif message_code == 220:  # 220 Deregister
                     self.deregister_peer(conn, address)
 
-                elif message_code == 310:  # 310 Request Chunk
+                elif message_code == 310:  # 310 Request Chunk Availability
                     chunk_request = data.get("chunk_request")
 
-                    peers_containing_range, is_all_available = self.get_chunk_info(conn, address, chunk_request)
+                    chunk_info, is_all_available = self.get_chunk_info(conn, address, chunk_request)
 
                     if is_all_available:
                         response = {
                             "message_comment": "Chunk request fulfilled",
                             "message_code": 631,
-                            "peers": peers_containing_range
+                            "chunks": chunk_info,
+                            "peer_info": [{peer_id: self.peer_info[peer_id]} for peer_id, _ in chunk_info.items()]
                         }
                     else:
                         response = {
                             "message_comment": "Request cannot be fulfilled",
                             "message_code": 731,
-                            "peers": peers_containing_range
+                            "chunks": chunk_info,
                         }
 
                     response = json.dumps(response).encode('utf-8')
@@ -281,7 +247,7 @@ class Tracker:
                     available_chunks = data.get("avail_chunks")
                     self.update_manifest(available_chunks, vid_name, conn, address)
 
-                else:  # 799 Invalid message code/Structure
+                else:  # 799 Invalid message code/structure
                     response = {
                         "message_comment": "Invalid message code",
                         "message_code": 799}
@@ -297,6 +263,9 @@ class Tracker:
                     "message_code": 799}
 
                 response = json.dumps(response).encode('utf-8')
+
+                logging.debug(f"Sending {response}: to {address}")
+
                 msg_len = len(response)
                 conn.send(msg_len.to_bytes(4, byteorder="big"))
                 conn.send(response)
@@ -316,27 +285,28 @@ class Tracker:
 
         :return: None
         """
-        print("Starting tracker...")
+        logging.info("Starting tracker...")
         tracker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tracker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        tracker.bind(('127.0.0.1', 8080))
+        tracker.bind(('0.0.0.0', 8080))
         tracker.listen(10)
-        print("Tracker started...")
+        logging.info("Tracker started...")
 
         try:
             while True:
                 conn, address = tracker.accept()
-                print(f"Connection from {address} has been established.")
+                logging.info(f"Connection from {address} has been established.")
                 client_handler = threading.Thread(target=self.handle_peer, args=(conn, address))
                 client_handler.start()
         except KeyboardInterrupt:
-            print("Shutting down tracker server...")
+            logging.info("Shutting down tracker server...")
         finally:
             tracker.close()
-            print("Tracker closed.")
+            logging.info("Tracker closed.")
 
 
 # Start the tracker
 if __name__ == "__main__":
+    logging.basicConfig(format='[TRCK: %(asctime)s] %(message)s', datefmt='%H:%M:%S', level=logging.DEBUG)
     tracker_instance = Tracker()
     tracker_instance.start_tracker()
