@@ -68,10 +68,11 @@ class ServerConnection:
             # Receive resposne message
             raw_res_len = self.conn.recv(4)
             res_len = int.from_bytes(raw_res_len, byteorder="big")
+            #TODO Make sure we receive full length (in all server conn functions)
             response = self.conn.recv(res_len).decode("utf-8")
 
         data = json.loads(response)
-        print(data)
+        print('[SERVER_CONN]', data)
 
         if data["message_code"] == 631:
             return data["peers"]

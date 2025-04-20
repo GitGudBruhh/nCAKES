@@ -9,8 +9,11 @@ from Peer.peer_sender_side import PeerSenderSide
 
 class Peer:
 
-    def __init__(self, sender_side):
-        self.ip_address = '10.200.244.162'
+    def __init__(self):
+        
+        # self.ip_address = '10.200.244.162'
+        self.ip_address = "127.0.0.1"
+
         # Peer to Server Connection
         self.server_conn = ServerConnection("127.0.0.1", 8080)
         self.server_handle_interval = 5
@@ -43,10 +46,12 @@ class Peer:
 
     def start_sender_side(self):
         print("Starting sender-side of this peer...")
+        
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sender.bind((self.ip_address, 8080))
+        sender.bind((self.ip_address, 9090))
         sender.listen(10)
         print("Sender-side started...")
+
         try:
             while True:
                 conn, address = sender.accept()
@@ -55,6 +60,7 @@ class Peer:
                                                     args=(conn,), #args should be a tuple
                                                     kwargs = {'parent': self}) 
                 client_handler.start()
+
         except KeyboardInterrupt:
             print("Shutting down sender-side of this peer...")
         finally:
@@ -66,26 +72,19 @@ class Peer:
         while True:
             # request video chunk info
             request = {
-                "video_name" : "1",
+                "video" : "video_1",
                 "chunk_range_start" : 0,
                 "chunk_range_end" : 5
             }
 
-            self.server_conn.request_chunks(request)
+            data = self.server_conn.request_chunks(request)
             
-            # receive chunk info
-            message_bytes = self.server_conn.conn.recv(4)
-            if not message_bytes:
-                break
-            message_bytes = int.from_bytes(message_bytes, byteorder='big')
-
-            while message_bytes > 0:
-                    message = self.server_conn.conn.recv(message_bytes).decode("utf-8")
-                    json_message += message
-                    message_bytes -= len(message)
-
+            print("[RECEIVER]", data)
             # parse tracker's reply. extract peer info
             # connect to peers -> call handle_peer()
+
+            #TODO Remove this later, but keep it for now or else client will bombard server with requests
+            time.sleep(10)
 
 if __name__ == "__main__":
 
@@ -93,6 +92,7 @@ if __name__ == "__main__":
 
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
+
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
     
