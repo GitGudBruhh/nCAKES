@@ -2,26 +2,32 @@ import socket
 import json
 import time
 import threading
+from ffplay import play_all_chunks
 
 from Peer.server_con import ServerConnection
 from Peer.peer_receiver_side import PeerReceiverSide
 from Peer.peer_sender_side import PeerSenderSide
 
+from video import Video
+
 class Peer:
 
-    def __init__(self, sender_side):
-        self.ip_address = '10.200.244.162'
+    def __init__(self):
+
+        # self.ip_address = '127.0.0.1'
+        self.ip_address = "0.0.0.0"
+
         # Peer to Server Connection
-        self.server_conn = ServerConnection("127.0.0.1", 8080)
-        self.server_handle_interval = 5
+        self.server_conn = ServerConnection("192.168.0.110", 8080)
+        self.server_handle_interval = 20
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
 
         # Peer to Peer client (For requesting and receiving data)
-        self.receiver_side = None
+        self.receiver_side = PeerReceiverSide()
 
-        self.videos = {}
+        self.videos : dict[str, Video] = {}
 
     def handle_server(self):
         with self.server_conn.conn_lock:
@@ -32,29 +38,35 @@ class Peer:
             with self.server_conn.conn_lock:
 
                 # Update this clients available chunks to the server periodically
+                time.sleep(1)
                 for video in self.videos.keys():
-                    self.server_conn.update_chunks(video, self.videos[video])
+                    self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
 
 
-                #TODO Send Alive pings once in a while
-                # self.server_conn.send_alive_to_server()
+        #         #TODO Send Alive pings once in a while
+        #         # self.server_conn.send_alive_to_server()
 
             time.sleep(self.server_handle_interval)
 
     def start_sender_side(self):
-        print("Starting sender-side of this peer...")
+
+        print("[SENDER_SIDE] Starting sender-side of this peer...")
         sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sender.bind((self.ip_address, 8080))
+        sender.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sender.bind((self.ip_address, 9090))
         sender.listen(10)
-        print("Sender-side started...")
+
+        print("[SENDER_SIDE] Sender-side started...")
+
         try:
             while True:
                 conn, address = sender.accept()
-                print(f"Connection from {address} has been established.")
-                client_handler = threading.Thread(target=self.server.handle_peer,
-                                                    args=(conn,), #args should be a tuple
+                print(f"[SENDER_SIDE] Connection from {address} has been established.")
+                client_handler = threading.Thread(target=self.sender_side.handle_peer,
+                                                    args=(conn, self.videos), #args should be a tuple
                                                     kwargs = {'parent': self})
                 client_handler.start()
+
         except KeyboardInterrupt:
             print("Shutting down sender-side of this peer...")
         finally:
@@ -66,26 +78,30 @@ class Peer:
         while True:
             # request video chunk info
             request = {
-                "video_name" : "1",
-                "chunk_range_start" : 0,
-                "chunk_range_end" : 5
+                "video" : "amogh.mp4"
             }
 
-            self.server_conn.request_chunks(request)
+            data = self.server_conn.request_chunks(request)
 
-            # receive chunk info
-            message_bytes = self.server_conn.conn.recv(4)
-            if not message_bytes:
-                break
-            message_bytes = int.from_bytes(message_bytes, byteorder='big')
-
-            while message_bytes > 0:
-                    message = self.server_conn.conn.recv(message_bytes).decode("utf-8")
-                    json_message += message
-                    message_bytes -= len(message)
+            print("[RECEIVER]", data)
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect((data[0], 9090))
+            req = {
+                "message_code" : 320,
+                "video_name" : "amogh.mp4",
+                "chunk_number": 0
+            }
+            req = json.dumps(req)
+            conn.send(len(req).to_bytes(4, "big"))
+            conn.send(req.encode("utf-8"))
+            videoss = self.receiver_side.handle_peer(conn, parent=self)
+            play_all_chunks(1, videoss)
 
             # parse tracker's reply. extract peer info
             # connect to peers -> call handle_peer()
+
+            #TODO Remove this later, but keep it for now or else client will bombard server with requests
+            time.sleep(10)
 
 if __name__ == "__main__":
 
@@ -93,20 +109,27 @@ if __name__ == "__main__":
 
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
+
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
 
     peer.start_receiver_side()
 
-    request = {
-        "video" : "video_2",
-        "chunk_range_start" : 2,
-        "chunk_range_end" : 4
+    video = Video("amogh.mp4", 0)
+    video.load_video("./videos/stream.ts", 2048576)     # Chunk size of 1MB
+
+    print(video.data.keys())
+
+    peer.videos = {
+        "amogh.mp4" : video
     }
 
-    print(peer.server_conn.request_chunks(request))
+    sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
+    sender_side.start()
 
-    peer.videos["amogh.mp4"] = [0, 1, 2, 3, 4, 5, 6, 7]
+    peer.start_receiver_side()
 
-    time.sleep(5)
+    while True:
+        pass
+
     peer.server_conn.conn.close()

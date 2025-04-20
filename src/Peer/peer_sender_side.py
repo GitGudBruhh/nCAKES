@@ -3,14 +3,15 @@ import json
 import time
 import threading
 
-# TODO:
-# 1. change message_code : 631 to something else while sending the chunk
+from video import Video
+
+# TODO: change message_code : 631 to something else while sending the chunk
 
 class PeerSenderSide:
     def __init__(self):
         pass
     
-    def send_requested_chunk(self, data, conn):
+    def send_requested_chunk(self, data, conn, videos : dict[str, Video]):
         """
         Sends requested chunk
 
@@ -20,11 +21,12 @@ class PeerSenderSide:
         """
         video_name = data.get("video_name")
         chunk_number = data.get("chunk_number")
-        with open(f'{self.video_dir}video_{video_name}_{chunk_number}.mp4', 'rb') as f:
-            binary_chunk = f.read()
+        # with open(f'./tests/Frontend/stream.ts', 'rb') as f:
+        #     binary_chunk = f.read()
+        binary_chunk = videos[video_name].get_chunk(chunk_number)
         response = {
-                "message_comment": "Request action fulfilled",
-                "message_code": 631,
+                "message_comment": "Chunk request fulfilled",
+                "message_code": 632,
                 "video_len": len(binary_chunk),
                 "video_name": video_name,
                 "chunk_number": chunk_number
@@ -35,7 +37,7 @@ class PeerSenderSide:
         conn.send(response.encode("utf-8"))
         conn.send(binary_chunk)
 
-    def handle_peer(self, conn, parent = None):
+    def handle_peer(self, conn, videos, parent = None):
         """
         Addresses other peers' chunk requests
 
@@ -64,11 +66,12 @@ class PeerSenderSide:
                 message_code = data.get("message_code")
                 print(message_code)
                 
-                if message_code == 310:
+                if message_code == 320:
                     # assuming peer is requesting 1 chunk at a time
-                    self.send_requested_chunk(data, conn)
+                    self.send_requested_chunk(data, conn, videos)
                 else:
                     print(message)
+
             except json.JSONDecodeError:
                 response = json.dumps({"message_comment": "Invalid JSON",
                                         "message_type": 799})
