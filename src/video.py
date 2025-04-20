@@ -1,14 +1,14 @@
 import os
 
 class Video: 
-    def __init__(self, name, total_chunks):
+    def __init__(self, name : str, total_chunks : int):
         self.name = name
         self.total_chunks = total_chunks
 
         self.avail_chunks = set()
         self.data : dict = {}
 
-    def load_chunk(self, chunk_id, data):
+    def put_chunk(self, chunk_id, data):
         if chunk_id < self.total_chunks:
             self.data[chunk_id] = data
             self.avail_chunks.add(chunk_id)

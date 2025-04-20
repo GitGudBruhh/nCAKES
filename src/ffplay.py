@@ -1,22 +1,23 @@
 import subprocess
 import time
 import shutil
-import video
+
+from video import Video
 
 
 def wait_for_chunk(chunk_dict, chunk_name):
-    print(f"[Player] Waiting for {chunk_name}...")
-    print(chunk_name not in chunk_dict)
+
     while chunk_name not in chunk_dict.keys():
+        print(f"[Player] Waiting for {chunk_name}...")
         time.sleep(0.5)
     print(f"[Player] {chunk_name} received!")
     return chunk_dict[chunk_name]
 
 def play_all_chunks(TOTAL_CHUNKS, chunk_dict):
-    print("[Player] Starting stream-like playback...")
+    print("[PLAYER] Starting to play video...")
 
     if not shutil.which('ffplay'):
-        print("[Player] ffplay is not installed. Please install it to play video chunks.")
+        print("[PLAYER] ffplay is not installed. Please install it to play video chunks.")
         return
 
     # Start ffplay process with stdin pipe
@@ -25,25 +26,26 @@ def play_all_chunks(TOTAL_CHUNKS, chunk_dict):
         stdin=subprocess.PIPE
     )
     try:
-        # print(TOTAL_CHUNKS)
         for i in range(0, TOTAL_CHUNKS):
             chunk_name = i
             binary_data = wait_for_chunk(chunk_dict, chunk_name)
             player.stdin.write(binary_data)
-            time.sleep(0.5)
-            print(f"played chunk{i}")
+            print(f"[PLAYER] played chunk {i}")
+
     finally:
         player.stdin.close()
+        print("test")
         player.wait()
-        print("[Player] All chunks played. Exiting.")
-
-if __name__ == "__main__":
-    # video_file = video.VideoChunker("stream.ts", chunk_size = 4096)
-    # chunks = video_file.chunkify()
-    # TOTAL_CHUNKS = video_file.get_total_chunks()
-    # # print(f"[Player] Total chunks: {TOTAL_CHUNKS}")
-    # print(f"[Player] Chunks: {chunks.keys()}")
+        print("[PLAYER] All chunks played. Exiting.")
 
 
-    # play_all_chunks(TOTAL_CHUNKS, video_file.chunks)
-    print()
+# if __name__ == "__main__":
+#     video_file = video.VideoChunker("stream.ts", chunk_size = 4096)
+#     chunks = video_file.chunkify()
+#     TOTAL_CHUNKS = video_file.get_total_chunks()
+#     # print(f"[Player] Total chunks: {TOTAL_CHUNKS}")
+#     print(f"[Player] Chunks: {chunks.keys()}")
+
+
+#     play_all_chunks(TOTAL_CHUNKS, video_file.chunks)
+#     print()

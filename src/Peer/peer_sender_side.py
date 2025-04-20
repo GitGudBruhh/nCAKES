@@ -45,7 +45,6 @@ class PeerSenderSide:
         :param parent: the parent's 'self' object
         :return: None
         """
-        global json_message
         json_message = ""
         while True:
             try:
@@ -64,7 +63,6 @@ class PeerSenderSide:
                 data = json.loads(json_message)
                 json_message = ""
                 message_code = data.get("message_code")
-                print(message_code)
                 
                 if message_code == 320:
                     # assuming peer is requesting 1 chunk at a time

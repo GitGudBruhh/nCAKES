@@ -18,8 +18,8 @@ class Peer:
         self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("192.168.0.110", 8080)
-        self.server_handle_interval = 20
+        self.server_conn = ServerConnection("192.168.0.222", 8080)
+        self.server_handle_interval = 40
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
@@ -33,19 +33,20 @@ class Peer:
         with self.server_conn.conn_lock:
             self.server_conn.register_with_server()
 
-        # while True:
-        #     # Get lock corresponding to socket connecting to the server
-        #     with self.server_conn.conn_lock:
+        while True:
+            # Get lock corresponding to socket connecting to the server
+            with self.server_conn.conn_lock:
 
-        #         # Update this clients available chunks to the server periodically
-        #         for video in self.videos.keys():
-        #             self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
+                # Update this clients available chunks to the server periodically
+                time.sleep(2)
+                for video in self.videos.keys():
+                    self.server_conn.update_chunks(video, list(self.videos[video].avail_chunks))
 
 
-        # #         #TODO Send Alive pings once in a while
-        # #         # self.server_conn.send_alive_to_server()
+                #TODO Send Alive pings once in a while
+                # self.server_conn.send_alive_to_server()
 
-        #     time.sleep(self.server_handle_interval + 1000)
+            time.sleep(self.server_handle_interval)
 
     def start_sender_side(self):
 
@@ -80,14 +81,18 @@ class Peer:
         }
 
         data = self.server_conn.request_chunks(request)
-        
         print("[RECEIVER]", data)
+        
+        self.videos[request["video"]] = Video(request["video"], 14) # Replace with total length
+
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conn.connect((data[1][0]["peer_1"]["ip_addr"], 9090))
         videoss = {}
-        video_player = threading.Thread(target=play_all_chunks, args=(7,videoss))
+        video_player = threading.Thread(target=play_all_chunks, args=(14,videoss))
         video_player.start()
-        for i in range(7):
+        for i in range(14):
+            if i == 4 or i == 6:
+                time.sleep(10)
             req = {
                 "message_code" : 320,
                 "video_name" : "amogh.mp4",
@@ -96,10 +101,8 @@ class Peer:
             req = json.dumps(req)
             conn.send(len(req).to_bytes(4, "big"))
             conn.send(req.encode("utf-8"))
-            videoss.update(self.receiver_side.handle_peer(conn, parent=self))
+            videoss.update(self.receiver_side.handle_peer(conn))
             print(videoss.keys())
-            if i==3 or i==4:
-                time.sleep(40)
             
         # parse tracker's reply. extract peer info
         # connect to peers -> call handle_peer()
@@ -114,22 +117,15 @@ if __name__ == "__main__":
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
 
-    sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
-    sender_side.start()
+    # sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
+    # sender_side.start()
 
-    peer.start_receiver_side()
+    # video = Video("amogh.mp4", 0)
+    # video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
 
-    video = Video("amogh.mp4", 0)
-    video.load_video("./videos/stream.ts", 2048576)     # Chunk size of 1MB
-
-    print(video.data.keys())
-
-    peer.videos = {
-        "amogh.mp4" : video
-    }
-
-    sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
-    sender_side.start()
+    # peer.videos = {
+    #     "amogh.mp4" : video
+    # }
 
     peer.start_receiver_side()
 
