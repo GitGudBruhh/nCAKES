@@ -1,3 +1,4 @@
+from http import server
 import socket
 import json
 import time
@@ -97,7 +98,7 @@ class Peer:
             sender.close()
             print("[SENDER_SIDE] Sender-side of this peer closed.")
 
-    def start_receiver_side(self):
+    def start_receiver_side(self, video_name):
         """
         Starts the receiver side of the peer, requesting video chunks from
         the server and handling incoming connections from other peers.
@@ -106,12 +107,16 @@ class Peer:
         """
         # connect to tracker - done in server_conn
         # request video chunk info
-        video_name = "amogh.mp4"
         request = {
             "video" : video_name
         }
 
-        chunks, peer_info = self.server_conn.request_chunks(request)
+        response = self.server_conn.request_chunks(request)
+        if response:
+            chunks, peer_info = response
+        else:
+            print(f"Requested video {video_name} is not hosted.")
+            return
 
         video_len = chunks["metadata"]["vid_len"]
         self.videos[video_name] = Video(request["video"], video_len)
@@ -124,7 +129,7 @@ class Peer:
         while len(self.videos[video_name].avail_chunks) < video_len:
              for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
                  
-                random_peer = random.randint(total_peers)
+                random_peer = random.randint(0, total_peers-1)
                 cur_peer = peer_info[random_peer]
 
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -144,6 +149,9 @@ if __name__ == "__main__":
 
     server_ip = input("Enter IP Address of the server: ")
 
+    if not server_ip:
+        server_ip = "192.168.0.116"
+            
     peer = Peer(server_ip)
 
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
@@ -156,14 +164,38 @@ if __name__ == "__main__":
     host_vid_response = input("Do you want to host the video or receive video? (Type host/rec): ")
     
     if host_vid_response == "host":
-        video = Video("amogh.mp4", 0)
-        video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
+        video_name = input("Enter video name you want to host (or leave blank for default): ")
+        if not video_name:
+            video_name = "stream.ts"
+        video = Video(video_name, 0)
+        video.load_video("./videos/" + video_name, 1048576)     # Chunk size of 1MB
 
         peer.videos = {
             "amogh.mp4" : video
         }
     else:
-        peer.start_receiver_side()
+        try:
+            while True:
+                video_name = input("Enter video name you want to receive (or leave blank for default): ")
+                if not video_name:
+                    video_name = "stream.ts"
+                peer.start_receiver_side(video_name)
+
+        except KeyboardInterrupt:
+            response = {
+                "message_comment": "Deregister",
+                "message_code": 220
+            }
+
+            response = json.dumps(response).encode('utf-8')
+            msg_len = len(response)
+            peer.server_conn.conn.send(msg_len.to_bytes(4, byteorder="big"))
+            peer.server_conn.conn.send(response)
+
+            msg_len = peer.server_conn.conn.recv(4)
+            msg = peer.server_conn.conn.recv(int.from_bytes(msg_len))
+            peer.server_conn.conn.close()
+            exit(0)
 
     try:
         while True:
@@ -182,6 +214,7 @@ if __name__ == "__main__":
 
         msg_len = peer.server_conn.conn.recv(4)
         msg = peer.server_conn.conn.recv(int.from_bytes(msg_len))
+        peer.server_conn.conn.close()
         exit(0)
 
 
