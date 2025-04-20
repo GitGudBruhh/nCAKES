@@ -23,16 +23,15 @@ class Peer:
         videos (dict): A dictionary of videos available for sharing.
     """
 
-    def __init__(self):
+    def __init__(self, server_ip):
         """
         Initializes the Peer instance and sets up connections.
         """
-        # self.ip_address = '127.0.0.1'
-        self.ip_address = "0.0.0.0"
+        self.ip_address = server_ip
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("192.168.0.110", 8080)
-        self.server_handle_interval = 40
+        self.server_conn = ServerConnection("192.168.0.115", 8080)
+        self.server_handle_interval = 5
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
@@ -142,8 +141,9 @@ class Peer:
 
 if __name__ == "__main__":
 
-    peer = Peer()
+    server_ip = input("Enter IP Address of the server: ")
 
+    peer = Peer(server_ip)
 
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
@@ -151,8 +151,9 @@ if __name__ == "__main__":
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
 
-
-    host_vid_response = input("Do you want to host the video or receive video? (Type host/rec)")
+    time.sleep(0.5)
+    host_vid_response = input("Do you want to host the video or receive video? (Type host/rec): ")
+    
     if host_vid_response == "host":
         video = Video("amogh.mp4", 0)
         video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
