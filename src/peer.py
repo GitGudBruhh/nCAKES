@@ -18,7 +18,7 @@ class Peer:
         self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("192.168.0.222", 8080)
+        self.server_conn = ServerConnection("192.168.0.115", 8080)
         self.server_handle_interval = 40
 
         # Peer to Peer Server (For sending data)
@@ -117,17 +117,17 @@ if __name__ == "__main__":
     tracker_side = threading.Thread(target=peer.handle_server, daemon=True)
     tracker_side.start()
 
-    # sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
-    # sender_side.start()
+    sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
+    sender_side.start()
 
-    # video = Video("amogh.mp4", 0)
-    # video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
+    video = Video("amogh.mp4", 0)
+    video.load_video("./videos/stream.ts", 1048576)     # Chunk size of 1MB
 
-    # peer.videos = {
-    #     "amogh.mp4" : video
-    # }
+    peer.videos = {
+        "amogh.mp4" : video
+    }
 
-    peer.start_receiver_side()
+    # peer.start_receiver_side()
 
     while True:
         pass
