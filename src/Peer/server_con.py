@@ -5,20 +5,15 @@ import threading
 
 class ServerConnection:
 
-    def __init__(self, server_ip, server_port, handle_interval):
+    def __init__(self, server_ip, server_port):
 
         self.server_ip = server_ip
         self.server_port = server_port
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conn.connect((self.server_ip, self.server_port))
 
-        self.handle_interval = handle_interval
-
-        #TODO Move this to Peer instead of ServerConnection
-        self.avail_chunks = {}
-
         # Threading stuff
-        self.server_conn_lock = threading.Lock()
+        self.conn_lock = threading.Lock()
         
 
     def send_msg_len(self, msg):
@@ -61,7 +56,7 @@ class ServerConnection:
 
         msg = json.dumps(message)
 
-        with self.server_conn_lock:
+        with self.conn_lock:
             self.send_msg_len(msg)
             self.conn.send(msg.encode("utf-8"))
 
@@ -76,13 +71,13 @@ class ServerConnection:
         elif data["message_type"] == 731:
             return None
 
-    def update_chunks(self, vid_name):
+    def update_chunks(self, vid_name, avail_chunks):
 
         message = {
             "message_code" : 410,
             "message_comment" : "Update Chunks",
             "vid_name" : vid_name,
-            "avail_chunks" : self.avail_chunks[vid_name]
+            "avail_chunks" : avail_chunks
         }
 
         msg = json.dumps(message)
@@ -121,23 +116,3 @@ class ServerConnection:
 
         if data["message_type"] == 611:
             return None
-
-
-    def handle_server(self):
-        
-        with self.server_conn_lock:
-            self.register_with_server()
-
-        while True:
-            # Get lock corresponding to socket connecting to the server
-            with self.server_conn_lock:
-                
-                # Update this clients available chunks to the server periodically
-                for video in self.avail_chunks.keys():
-                    self.update_chunks(video)
-
-
-                # Send Alive pings once in a while
-                self.send_alive_to_server()
-
-            time.sleep(self.handle_interval)
