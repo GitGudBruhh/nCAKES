@@ -132,14 +132,12 @@ class Peer:
                 random_peer = random.randint(0, total_peers-1)
                 cur_peer = peer_info[random_peer]
 
-                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                
                 # print("peer_info", cur_peer[list(cur_peer.keys())[0]])
 
-                conn.connect((cur_peer[list(cur_peer.keys())[0]]["ip_addr"], 9090))
+                ip_addr = cur_peer[list(cur_peer.keys())[0]]["ip_addr"]
                 
                 req_chunk = threading.Thread(target=self.receiver_side.handle_peer, 
-                                                args=(conn, self.videos[video_name], chunk_num))
+                                                args=(ip_addr, self.videos[video_name], chunk_num))
                 req_chunk.start()
 
              # Wait before requesting again
@@ -171,7 +169,7 @@ if __name__ == "__main__":
         video.load_video("./videos/" + video_name, 1048576)     # Chunk size of 1MB
 
         peer.videos = {
-            "amogh.mp4" : video
+            video_name : video
         }
     else:
         try:

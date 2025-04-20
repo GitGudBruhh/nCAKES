@@ -1,6 +1,9 @@
 import json
 from video import Video
 
+import socket
+
+
 class PeerReceiverSide:
     def __init__(self):
         # init method for peer receiver side; no initialization needed for now
@@ -25,7 +28,7 @@ class PeerReceiverSide:
 
         return video_chunk
 
-    def handle_peer(self, conn, video: Video, chunk_req):
+    def handle_peer(self, ip_addr, video: Video, chunk_req):
         """
         Addresses video chunks sent by other peers.
 
@@ -34,6 +37,11 @@ class PeerReceiverSide:
         :param chunk_req: the requested video chunk number
         :return: None
         """
+
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect((ip_addr, 9090))
+
+
         json_message = ""
 
         # sending a chunk request to the peer
