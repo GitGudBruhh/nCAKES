@@ -105,7 +105,7 @@ class Tracker:
         self.manifest[vid_name]["metadata"] = {"vid_len": vid_length}
 
         for chunk in chunks:
-            self.manifest[vid_name][peer_identifier].add(chunk)
+            self.manifest[vid_name]["chunks"][peer_identifier].add(chunk)
 
         self.manifest[vid_name]["chunks"][peer_identifier] = list(self.manifest[vid_name]["chunks"][peer_identifier])
 
@@ -229,13 +229,13 @@ class Tracker:
                     chunk_request = data.get("chunk_request")
 
                     chunk_info, is_all_available = self.get_chunk_info(conn, address, chunk_request)
-
+                    print(chunk_info)
                     if is_all_available:
                         response = {
                             "message_comment": "Chunk request fulfilled",
                             "message_code": 631,
                             "chunks": chunk_info,
-                            "peer_info": [{peer_id: self.peer_info[peer_id]} for peer_id, _ in chunk_info.items()]
+                            "peer_info": [{peer_id: self.peer_info[peer_id]} for peer_id, _ in chunk_info["chunks"].items()]
                         }
                     else:
                         response = {

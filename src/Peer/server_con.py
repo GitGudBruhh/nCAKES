@@ -1,7 +1,8 @@
 import socket
 import json
-import time
 import threading
+
+from video import Video
 
 class ServerConnection:
 
@@ -79,13 +80,14 @@ class ServerConnection:
         elif data["message_code"] == 731:
             return None
 
-    def update_chunks(self, vid_name, avail_chunks):
+    def update_chunks(self, vid : Video):
 
         message = {
             "message_code" : 410,
             "message_comment" : "Update Chunks",
-            "vid_name" : vid_name,
-            "avail_chunks" : avail_chunks
+            "vid_name" : vid.name,
+            "vid_len": vid.total_chunks,
+            "avail_chunks" : list(vid.avail_chunks),
         }
 
         msg = json.dumps(message)

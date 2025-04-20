@@ -34,9 +34,8 @@ def play_all_chunks(TOTAL_CHUNKS, chunk_dict):
 
     finally:
         player.stdin.close()
-        print("test")
-        player.wait()
         print("[PLAYER] All chunks played. Exiting.")
+        # player.kill()
 
 
 # if __name__ == "__main__":
