@@ -3,8 +3,7 @@ import json
 import time
 import threading
 
-# TODO:
-# 1. change message_code : 631 to something else while sending the chunk
+# TODO: change message_code : 631 to something else while sending the chunk
 
 class PeerSenderSide:
     def __init__(self):
