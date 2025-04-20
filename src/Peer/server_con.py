@@ -34,14 +34,19 @@ class ServerConnection:
         self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
-        response = self.conn.recv(1024)
+        # Receive response from server
+        raw_res_len = self.conn.recv(4)
+        res_len = int.from_bytes(raw_res_len, byteorder="big")
+        response = self.conn.recv(res_len).decode("utf-8")
+    
+
         data = json.loads(response)
 
         print(data)
 
-        if data["message_type"] == 621:
+        if data["message_code"] == 621:
             return 
-        elif data["message_type"] == 721:
+        elif data["message_code"] == 721:
             raise(data["message_comment"])
         
     def request_chunks(self, request : dict):
@@ -60,15 +65,17 @@ class ServerConnection:
             self.send_msg_len(msg)
             self.conn.send(msg.encode("utf-8"))
 
-            #TODO Receive entire message
-            response = self.conn.recv(1024)
+            # Receive resposne message
+            raw_res_len = self.conn.recv(4)
+            res_len = int.from_bytes(raw_res_len, byteorder="big")
+            response = self.conn.recv(res_len).decode("utf-8")
 
         data = json.loads(response)
         print(data)
 
-        if data["message_type"] == 631:
+        if data["message_code"] == 631:
             return data["peers"]
-        elif data["message_type"] == 731:
+        elif data["message_code"] == 731:
             return None
 
     def update_chunks(self, vid_name, avail_chunks):
@@ -83,18 +90,20 @@ class ServerConnection:
         msg = json.dumps(message)
 
         self.send_msg_len(msg)
-        print(len(msg))
-        print(msg)
         self.conn.send(msg.encode("utf-8"))
 
-        response = self.conn.recv(1024)
-        data = json.loads(response)
+        # Receive response from server
+        raw_res_len = self.conn.recv(4)
+        res_len = int.from_bytes(raw_res_len, byteorder="big")
+        response = self.conn.recv(res_len).decode("utf-8")
 
+
+        data = json.loads(response)
         print(data)
 
-        if data["message_type"] == 641:
+        if data["message_code"] == 641:
             pass
-        elif data["message_type"] == 741:
+        elif data["message_code"] == 741:
             pass
     
     def send_alive_to_server(self):
@@ -114,5 +123,5 @@ class ServerConnection:
 
         print(data)
 
-        if data["message_type"] == 611:
+        if data["message_code"] == 611:
             return None
