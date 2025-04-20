@@ -27,7 +27,7 @@ def play_all_chunks(TOTAL_CHUNKS, chunk_dict):
 
     try:
         for i in range(0, TOTAL_CHUNKS):
-            chunk_name = f"{i}"
+            chunk_name = i
             binary_data = wait_for_chunk(chunk_dict, chunk_name)
             player.stdin.write(binary_data)
     finally:

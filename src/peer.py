@@ -2,6 +2,7 @@ import socket
 import json
 import time
 import threading
+from ffplay import play_all_chunks
 
 from Peer.server_con import ServerConnection
 from Peer.peer_receiver_side import PeerReceiverSide
@@ -94,7 +95,8 @@ class Peer:
             req = json.dumps(req)
             conn.send(len(req).to_bytes(4, "big"))
             conn.send(req.encode("utf-8"))
-            self.receiver_side.handle_peer(conn, parent=self)
+            videoss = self.receiver_side.handle_peer(conn, parent=self)
+            play_all_chunks(1, videoss)
             # parse tracker's reply. extract peer info
             # connect to peers -> call handle_peer()
 
@@ -117,6 +119,8 @@ if __name__ == "__main__":
 
     sender_side = threading.Thread(target=peer.start_sender_side, daemon=True)
     sender_side.start()
+
+    peer.start_receiver_side()
     
     while True:
         pass
