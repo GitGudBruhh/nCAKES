@@ -41,7 +41,6 @@ class PeerReceiverSide:
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         conn.connect((ip_addr, 9090))
 
-
         json_message = ""
 
         # sending a chunk request to the peer

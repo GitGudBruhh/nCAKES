@@ -140,6 +140,9 @@ class Peer:
                                                 args=(ip_addr, self.videos[video_name], chunk_num))
                 req_chunk.start()
 
+                # Wait for a little time before sending new requests
+                time.sleep(0.1)
+
              # Wait before requesting again
              time.sleep(5)
 
