@@ -12,17 +12,17 @@ class Peer:
     def __init__(self):
         
         # self.ip_address = '10.200.244.162'
-        self.ip_address = "127.0.0.1"
+        self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("127.0.0.1", 8080)
+        self.server_conn = ServerConnection("192.168.0.110", 8080)
         self.server_handle_interval = 5
 
         # Peer to Peer Server (For sending data)
         self.sender_side = PeerSenderSide()
 
         # Peer to Peer client (For requesting and receiving data)
-        self.receiver_side = None
+        self.receiver_side = PeerReceiverSide()
 
         self.videos = {}
 
@@ -30,19 +30,19 @@ class Peer:
         with self.server_conn.conn_lock:
             self.server_conn.register_with_server()
 
-        while True:
-            # Get lock corresponding to socket connecting to the server
-            with self.server_conn.conn_lock:
+        # while True:
+        #     # Get lock corresponding to socket connecting to the server
+        #     with self.server_conn.conn_lock:
 
-                # Update this clients available chunks to the server periodically
-                for video in self.videos.keys():
-                    self.server_conn.update_chunks(video, self.videos[video])
+        #         # Update this clients available chunks to the server periodically
+        #         for video in self.videos.keys():
+        #             self.server_conn.update_chunks(video, self.videos[video])
 
 
-                #TODO Send Alive pings once in a while
-                # self.server_conn.send_alive_to_server()
+        #         #TODO Send Alive pings once in a while
+        #         # self.server_conn.send_alive_to_server()
 
-            time.sleep(self.server_handle_interval)
+        #     time.sleep(self.server_handle_interval)
 
     def start_sender_side(self):
         print("Starting sender-side of this peer...")
@@ -72,14 +72,25 @@ class Peer:
         while True:
             # request video chunk info
             request = {
-                "video" : "video_1",
+                "video" : "amogh.mp4",
                 "chunk_range_start" : 0,
-                "chunk_range_end" : 5
+                "chunk_range_end" : 3
             }
 
             data = self.server_conn.request_chunks(request)
             
             print("[RECEIVER]", data)
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect((data[0], 9090))
+            req = {
+                "message_code" : 320,
+                "video_name" : "amogh.mp4",
+                "chunk_number": 0
+            }
+            req = json.dumps(req)
+            conn.send(len(req).to_bytes(4, "big"))
+            conn.send(req.encode("utf-8"))
+            self.receiver_side.handle_peer(conn, parent=self)
             # parse tracker's reply. extract peer info
             # connect to peers -> call handle_peer()
 
