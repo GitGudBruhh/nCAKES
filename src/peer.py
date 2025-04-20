@@ -84,8 +84,8 @@ class Peer:
                     json_message += message
                     message_bytes -= len(message)
 
-            # parse tracker's reply. extract peer info
-            # connect to peers -> call handle_peer()
+            # TODO:parse tracker's reply. extract peer info
+            # TODO:connect to peers -> call handle_peer()
 
 if __name__ == "__main__":
 
