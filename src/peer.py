@@ -18,7 +18,7 @@ class Peer:
         self.ip_address = "0.0.0.0"
 
         # Peer to Server Connection
-        self.server_conn = ServerConnection("192.168.0.222", 8080)
+        self.server_conn = ServerConnection("192.168.0.115", 8080)
         self.server_handle_interval = 40
 
         # Peer to Peer Server (For sending data)
@@ -89,27 +89,25 @@ class Peer:
         video_player = threading.Thread(target=play_all_chunks, args=(video_len, self.videos[video_name].data))
         video_player.start()
 
-        print(peer_info)
-        print(chunks)
-
         total_peers = len(peer_info)
 
-        for chunk_num in range(video_len):
+        while len(self.videos[video_name].avail_chunks) < video_len:
+            for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
+                
+                cur_peer = peer_info[chunk_num % total_peers]
+
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                
+                print("peer_info", cur_peer[list(cur_peer.keys())[0]])
+
+                conn.connect((cur_peer[list(cur_peer.keys())[0]]["ip_addr"], 9090))
+                
+                req_chunk = threading.Thread(target=self.receiver_side.handle_peer, 
+                                                args=(conn, self.videos[video_name], chunk_num))
+                req_chunk.start()
+            # Wait
+            time.sleep(5)
             
-            cur_peer = chunk_num % total_peers  
-
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            conn.connect((peer_info[cur_peer]["peer_1"]["ip_addr"], 9090))
-
-            video_player = threading.Thread(target=self.receiver_side.handle_peer, 
-                                            args=(conn, self.videos[video_name], chunk_num))
-            video_player.start()
-            
-        # connect to peers -> call handle_peer()
-
-        #TODO Remove this later, but keep it for now or else client will bombard server with requests
-        # time.sleep(10)
-
 if __name__ == "__main__":
 
     peer = Peer()
