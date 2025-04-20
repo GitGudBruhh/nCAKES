@@ -52,7 +52,10 @@ class Tracker:
         # # Check if all requested chunks are available
         # is_all_available = (requested_and_available == requested)
 
-        return (self.manifest[vid], True)
+        if vid in self.manifest.keys():
+            return (self.manifest[vid], True)
+        else:
+            return (None, False)
 
     def update_manifest(self, available_chunks, vid_name, conn, address):
         """
@@ -234,7 +237,6 @@ class Tracker:
                         response = {
                             "message_comment": "Request cannot be fulfilled",
                             "message_code": 731,
-                            "chunks": chunk_info,
                         }
 
                     response = json.dumps(response).encode('utf-8')
