@@ -14,7 +14,7 @@ class ServerConnection:
 
         # Threading stuff
         self.conn_lock = threading.Lock()
-        
+
 
     def send_msg_len(self, msg):
         msg_len = len(msg)
@@ -30,7 +30,7 @@ class ServerConnection:
 
 
         msg = json.dumps(message)
-        
+
         self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
@@ -38,17 +38,17 @@ class ServerConnection:
         raw_res_len = self.conn.recv(4)
         res_len = int.from_bytes(raw_res_len, byteorder="big")
         response = self.conn.recv(res_len).decode("utf-8")
-    
+
 
         data = json.loads(response)
 
         print(data)
 
         if data["message_code"] == 621:
-            return 
+            return
         elif data["message_code"] == 721:
             raise(data["message_comment"])
-        
+
     def request_chunks(self, request : dict):
 
         req_chunks = json.dumps(request)
@@ -105,7 +105,7 @@ class ServerConnection:
             pass
         elif data["message_code"] == 741:
             pass
-    
+
     def send_alive_to_server(self):
 
         message = {
@@ -118,7 +118,10 @@ class ServerConnection:
         self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
-        response = self.conn.recv(1024)
+        raw_res_len = self.conn.recv(4)
+        res_len = int.from_bytes(raw_res_len, byteorder="big")
+        response = self.conn.recv(res_len).decode("utf-8")
+
         data = json.loads(response)
 
         print(data)

@@ -9,7 +9,7 @@ class Peer:
 
     def __init__(self, sender_side):
         self.ip_address = '10.200.244.162'
-        
+
         # Peer to Server Connection
         self.server_conn = ServerConnection("127.0.0.1", 8080)
         self.server_handle_interval = 5
@@ -29,7 +29,7 @@ class Peer:
         while True:
             # Get lock corresponding to socket connecting to the server
             with self.server_conn.conn_lock:
-                
+
                 # Update this clients available chunks to the server periodically
                 for video in self.videos.keys():
                     self.server_conn.update_chunks(video, self.videos[video])
@@ -97,12 +97,12 @@ class PeerSenderSide:
                 json_message = ""
                 message_code = data.get("message_code")
                 print(message_code)
-                
+
                 if message_code == 310:
                     # assuming peer is requesting 1 chunk at a time
                     self.send_requested_chunk(data, conn)
-                    
-                
+
+
                 elif message_code == 631: #receiving chunk
                     self.receive_chunk(data, conn)
                     # TODO:report updated chunk collection to tracker
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     tracker_side.start()
 
     request = {
-        "video" : "v2",
+        "video" : "video_2",
         "chunk_range_start" : 2,
         "chunk_range_end" : 4
     }
