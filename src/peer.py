@@ -92,24 +92,22 @@ class Peer:
         total_peers = len(peer_info)
 
         while len(self.videos[video_name].avail_chunks) < video_len:
-            for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
-                
-                cur_peer = peer_info[chunk_num % total_peers]
-        for chunk_num in range(video_len):
-
-            cur_peer = chunk_num % total_peers
-
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            conn.connect((peer_info[cur_peer]["peer_1"]["ip_addr"], 9090))
-
-            video_player = threading.Thread(target=self.receiver_side.handle_peer,
-                                            args=(conn, self.videos[video_name], chunk_num))
-            video_player.start()
-
-        # connect to peers -> call handle_peer()
-
-        #TODO Remove this later, but keep it for now or else client will bombard server with requests
-        # time.sleep(10)
+             for chunk_num in (set(range(video_len)) - self.videos[video_name].avail_chunks):
+                 
+                 cur_peer = peer_info[chunk_num % total_peers]
+ 
+                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                 
+                 print("peer_info", cur_peer[list(cur_peer.keys())[0]])
+ 
+                 conn.connect((cur_peer[list(cur_peer.keys())[0]]["ip_addr"], 9090))
+                 
+                 req_chunk = threading.Thread(target=self.receiver_side.handle_peer, 
+                                                 args=(conn, self.videos[video_name], chunk_num))
+                 req_chunk.start()
+                 
+             # Wait
+             time.sleep(5)
 
 if __name__ == "__main__":
 
@@ -129,8 +127,6 @@ if __name__ == "__main__":
     }
 
     # peer.start_receiver_side()
-<<<<<<< HEAD
-=======
 
     try:
         while True:
@@ -149,7 +145,6 @@ if __name__ == "__main__":
         msg_len = peer.server_conn.conn.recv(4)
         msg = peer.server_conn.conn.recv(int.from_bytes(msg_len))
         exit(0)
->>>>>>> 641d8e49bb107180c9771bc006d5519320badf56
 
 
     peer.server_conn.conn.close()
