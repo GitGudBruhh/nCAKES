@@ -77,9 +77,7 @@ class Peer:
         while True:
             # request video chunk info
             request = {
-                "video" : "amogh.mp4",
-                "chunk_range_start" : 0,
-                "chunk_range_end" : 3
+                "video" : "amogh.mp4"
             }
 
             data = self.server_conn.request_chunks(request)
