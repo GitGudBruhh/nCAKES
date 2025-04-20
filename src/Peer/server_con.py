@@ -34,7 +34,12 @@ class ServerConnection:
         self.send_msg_len(msg)
         self.conn.send(msg.encode("utf-8"))
 
-        response = self.conn.recv(1024)
+        # Receive response from server
+        raw_res_len = self.conn.recv(4)
+        res_len = int.from_bytes(raw_res_len, byteorder="big")
+        response = self.conn.recv(res_len).decode("utf-8")
+    
+
         data = json.loads(response)
 
         print(data)
@@ -60,8 +65,10 @@ class ServerConnection:
             self.send_msg_len(msg)
             self.conn.send(msg.encode("utf-8"))
 
-            #TODO Receive entire message
-            response = self.conn.recv(1024)
+            # Receive resposne message
+            raw_res_len = self.conn.recv(4)
+            res_len = int.from_bytes(raw_res_len, byteorder="big")
+            response = self.conn.recv(res_len).decode("utf-8")
 
         data = json.loads(response)
         print(data)
@@ -83,13 +90,15 @@ class ServerConnection:
         msg = json.dumps(message)
 
         self.send_msg_len(msg)
-        print(len(msg))
-        print(msg)
         self.conn.send(msg.encode("utf-8"))
 
-        response = self.conn.recv(1024)
-        data = json.loads(response)
+        # Receive response from server
+        raw_res_len = self.conn.recv(4)
+        res_len = int.from_bytes(raw_res_len, byteorder="big")
+        response = self.conn.recv(res_len).decode("utf-8")
 
+
+        data = json.loads(response)
         print(data)
 
         if data["message_type"] == 641:
