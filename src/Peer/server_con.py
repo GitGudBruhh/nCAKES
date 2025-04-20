@@ -75,7 +75,7 @@ class ServerConnection:
         print('[SERVER_CONN]', data)
 
         if data["message_code"] == 631:
-            return data["peers"]
+            return (data["chunks"], data["peer_info"])
         elif data["message_code"] == 731:
             return None
 
