@@ -44,9 +44,9 @@ class ServerConnection:
 
         print(data)
 
-        if data["message_type"] == 621:
+        if data["message_code"] == 621:
             return 
-        elif data["message_type"] == 721:
+        elif data["message_code"] == 721:
             raise(data["message_comment"])
         
     def request_chunks(self, request : dict):
@@ -73,9 +73,9 @@ class ServerConnection:
         data = json.loads(response)
         print(data)
 
-        if data["message_type"] == 631:
+        if data["message_code"] == 631:
             return data["peers"]
-        elif data["message_type"] == 731:
+        elif data["message_code"] == 731:
             return None
 
     def update_chunks(self, vid_name, avail_chunks):
@@ -101,9 +101,9 @@ class ServerConnection:
         data = json.loads(response)
         print(data)
 
-        if data["message_type"] == 641:
+        if data["message_code"] == 641:
             pass
-        elif data["message_type"] == 741:
+        elif data["message_code"] == 741:
             pass
     
     def send_alive_to_server(self):
@@ -123,5 +123,5 @@ class ServerConnection:
 
         print(data)
 
-        if data["message_type"] == 611:
+        if data["message_code"] == 611:
             return None
